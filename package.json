@@ -1,0 +1,17 @@
+{
+  "name": "fbtest",
+  "version": "1.0.0",
+  "description": "fusebox test",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "vegar.ringdal@gmail.com",
+  "license": "MIT",
+  "devDependencies": {
+    "aurelia-bootstrapper": "^2.0.1",
+    "aurelia-framework": "^1.0.8",
+    "fuse-box": "^1.3.103",
+    "typescript":"^2.1.6"
+  }
+}
