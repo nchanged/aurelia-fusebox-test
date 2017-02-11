@@ -1,13 +1,13 @@
-import  "aurelia-framework"
-import {bootstrap} from 'aurelia-bootstrapper';
 
+// need to have these imports to make it work atm...
+import "./app"
+import "aurelia-framework"
+import "./fuse-aurelia-loader"
+import 'aurelia-bootstrapper';
 
-
-bootstrap(async aurelia => {
-  debugger;
+export function configure(aurelia) {
   aurelia.use
     .standardConfiguration()
-    .developmentLogging();
-  await aurelia.start();
-  aurelia.setRoot('app', document.body);
-});
+
+  aurelia.start().then(() => aurelia.setRoot());
+}
