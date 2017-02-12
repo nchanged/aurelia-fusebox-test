@@ -147,7 +147,10 @@ export class FuseAureliaLoader extends Loader {
     else if(id.startsWith("html-resource-plugin!")){
       module = this._import(id)
       // id = id.replace("html-resource-plugin!", "")
-      console.log(module, id)
+    }
+    else if(id.startsWith("css-resource-plugin!")){
+      id = id.replace("css-resource-plugin!", "")
+      module = FuseBox.import('~/' +id)
     }
     else{
 

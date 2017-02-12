@@ -187,8 +187,10 @@ var FuseAureliaLoader = (function (_super) {
         }
         else if (id.startsWith("html-resource-plugin!")) {
             module = this._import(id);
-            // id = id.replace("html-resource-plugin!", "")
-            console.log(module, id);
+        }
+        else if (id.startsWith("css-resource-plugin!")) {
+            id = id.replace("css-resource-plugin!", "");
+            module = FuseBox["import"]('~/' + id);
         }
         else {
             if (!FuseBox.packages[id]) {
@@ -296,7 +298,7 @@ module.exports.default =  "<template>\n  <require from=\"nav-bar.html\"></requir
 });
 ___scope___.file("child-router.html", function(exports, require, module, __filename, __dirname){ 
 
-module.exports.default =  "<template>\n  <section class=\"au-animate\">\n    <h2>${heading}</h2>\n    <div>\n      <div class=\"col-md-2\">\n        <ul class=\"well nav nav-pills nav-stacked\">\n          <li repeat.for=\"row of router.navigation\" class=\"${row.isActive ? 'active' : ''}\">\n            <a href.bind=\"row.href\">${row.title}</a>\n          </li>\n        </ul>\n      </div>\n      <div class=\"col-md-10\" style=\"padding: 0\">\n        <router-view></router-view>\n      </div>\n    </div>\n  </section>\n</template>\n"
+module.exports.default =  "<template>\n<require from=\"./background1.css\"></require>\n  <section class=\"au-animate\">\n    <h2>${heading}</h2>\n    <div>\n      <div class=\"col-md-2\">\n        <ul class=\"well nav nav-pills nav-stacked\">\n          <li repeat.for=\"row of router.navigation\" class=\"${row.isActive ? 'active' : ''}\">\n            <a href.bind=\"row.href\">${row.title}</a>\n          </li>\n        </ul>\n      </div>\n      <div class=\"col-md-10\" style=\"padding: 0\">\n        <router-view></router-view>\n      </div>\n    </div>\n  </section>\n</template>\n"
 });
 ___scope___.file("nav-bar.html", function(exports, require, module, __filename, __dirname){ 
 
@@ -308,7 +310,7 @@ module.exports.default =  "<template>\n  <require from=\"blur-image\"></require>
 });
 ___scope___.file("welcome.html", function(exports, require, module, __filename, __dirname){ 
 
-module.exports.default =  "<template>\n  <section class=\"au-animate\">\n    <h2>${heading}</h2>\n    <form role=\"form\" submit.delegate=\"submit()\">\n      <div class=\"form-group\">\n        <label for=\"fn\">First Name</label>\n        <input type=\"text\" value.bind=\"firstName\" class=\"form-control\" id=\"fn\" placeholder=\"first name\">\n      </div>\n      <div class=\"form-group\">\n        <label for=\"ln\">Last Name</label>\n        <input type=\"text\" value.bind=\"lastName\" class=\"form-control\" id=\"ln\" placeholder=\"last name\">\n      </div>\n      <div class=\"form-group\">\n        <label>Full Name</label>\n        <p class=\"help-block\">${fullName | upper}</p>\n      </div>\n      <button type=\"submit\" class=\"btn btn-default\">Submit</button>\n    </form>\n  </section>\n</template>\n"
+module.exports.default =  "<template>\n  \n  <section class=\"au-animate\">\n    <h2>${heading}</h2>\n    <form role=\"form\" submit.delegate=\"submit()\">\n      <div class=\"form-group\">\n        <label for=\"fn\">First Name</label>\n        <input type=\"text\" value.bind=\"firstName\" class=\"form-control\" id=\"fn\" placeholder=\"first name\">\n      </div>\n      <div class=\"form-group\">\n        <label for=\"ln\">Last Name</label>\n        <input type=\"text\" value.bind=\"lastName\" class=\"form-control\" id=\"ln\" placeholder=\"last name\">\n      </div>\n      <div class=\"form-group\">\n        <label>Full Name</label>\n        <p class=\"help-block\">${fullName | upper}</p>\n      </div>\n      <button type=\"submit\" class=\"btn btn-default\">Submit</button>\n    </form>\n  </section>\n</template>\n"
 });
 ___scope___.file("app.js", function(exports, require, module, __filename, __dirname){ 
 
@@ -331,6 +333,9 @@ exports.App = App;
 
 });
 ___scope___.file("blur-image.js", function(exports, require, module, __filename, __dirname){ 
+var __decorate = __fsbx_decorate(arguments)
+var __decorate = __fsbx_decorate(arguments)
+var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
@@ -668,7 +673,6 @@ var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
-var __decorate = __fsbx_decorate(arguments)
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -748,6 +752,10 @@ var UpperValueConverter = (function () {
 }());
 exports.UpperValueConverter = UpperValueConverter;
 
+});
+___scope___.file("background1.css", function(exports, require, module, __filename, __dirname){ 
+
+__fsbx_css("background1.css", "body{\r\n background-color: yellow;\r\n}");
 });
 });
 FuseBox.pkg("fusebox-hot-reload", {}, function(___scope___){

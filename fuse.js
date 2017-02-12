@@ -20,6 +20,7 @@ fuse.devServer(`
     > main.ts
     + **/*.html 
     + **/*.ts 
+    + **/*.css 
     + aurelia-framework
     + aurelia-polyfills
     + aurelia-fetch-client
