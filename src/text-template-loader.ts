@@ -14,7 +14,7 @@ export class TextTemplateLoader {
   loadTemplate(loader, entry): Promise {
     return loader.loadText(entry.address).then(text => {
       console.log(text)
-      entry.template = DOM.createTemplateFromMarkup(text.default);
+      entry.template = DOM.createTemplateFromMarkup(text);
     });
   }
 }

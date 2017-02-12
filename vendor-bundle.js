@@ -1,4 +1,38 @@
 (function(FuseBox){
+var __fsbx_css = function(__filename, contents) {
+    if (FuseBox.isServer) {
+        return;
+    }
+    var styleId = __filename.replace(/[\.\/]+/g, "-");
+    if (styleId.charAt(0) === '-') styleId = styleId.substring(1);
+    var exists = document.getElementById(styleId);
+    if (!exists) {
+        //<link href="//fonts.googleapis.com/css?family=Covered+By+Your+Grace" rel="stylesheet" type="text/css">
+        var s = document.createElement(contents ? "style" : "link");
+        s.id = styleId;
+        s.type = "text/css";
+        if (contents) {
+            s.innerHTML = contents;
+        } else {
+            s.rel = "stylesheet";
+            s.href = __filename;
+        }
+        document.getElementsByTagName("head")[0].appendChild(s);
+    } else {
+        if (contents) {
+            exists.innerHTML = contents;
+        }
+    }
+}
+FuseBox.on("async", function(name) {
+    if (FuseBox.isServer) {
+        return;
+    }
+    if (/\.css$/.test(name)) {
+        __fsbx_css(name);
+        return false;
+    }
+});
 FuseBox.pkg("default", {}, function(___scope___){
 ___scope___.file("main.js", function(exports, require, module, __filename, __dirname){ 
 
@@ -10,7 +44,8 @@ require("aurelia-bootstrapper");
 // aurelia configuration
 function configure(aurelia) {
     aurelia.use
-        .standardConfiguration();
+        .standardConfiguration()
+        .developmentLogging();
     aurelia.start().then(() => aurelia.setRoot());
 }
 exports.configure = configure;
@@ -61,7 +96,7 @@ class FuseAureliaLoader extends aurelia_loader_1.Loader {
             'fetch': function (address) {
                 console.log('fetch =>', address);
                 let entry = that.getOrCreateTemplateRegistryEntry(address);
-                return entry.templateIsLoaded ? Promise.resolve(entry) : that.templateLoader.loadTemplate(that, entry).then(x => entry);
+                return entry.templateIsLoaded ? entry : that.templateLoader.loadTemplate(that, entry).then(x => entry);
             }
         });
         // this.addPlugin('html-resource-plugin', {
@@ -120,13 +155,12 @@ class FuseAureliaLoader extends aurelia_loader_1.Loader {
     */
     loadText(url) {
         console.log("loadText =>", url);
-        return Promise.resolve(FuseBox.import("~/" + url));
-        // return this._import(this.applyPluginToUrl(url, this.textPluginName)).then(textOrModule => {
-        //   if (typeof textOrModule === 'string') {
-        //     return textOrModule;
-        //   }
-        //   return textOrModule['default'];
-        // });
+        return Promise.resolve(FuseBox.import("~/" + url)).then(textOrModule => {
+            if (typeof textOrModule === 'string') {
+                return textOrModule;
+            }
+            return textOrModule['default'];
+        });
     }
     /**
     * Loads a module.
@@ -136,10 +170,7 @@ class FuseAureliaLoader extends aurelia_loader_1.Loader {
     loadModule(id) {
         console.log("loadModule =>", id);
         let module = null;
-        if (id === 'main' || id === 'app') {
-            module = FuseBox.import('~/' + id);
-        }
-        else if (id.startsWith("aurelia-templating-resources/")) {
+        if (id.startsWith("aurelia-templating-resources/")) {
             id = id.replace("aurelia-templating-resources", "aurelia-templating-resources/dist/commonjs");
             module = FuseBox.import(id);
         }
@@ -153,7 +184,12 @@ class FuseAureliaLoader extends aurelia_loader_1.Loader {
             console.log(module, id);
         }
         else {
-            module = FuseBox.import(id);
+            if (!FuseBox.packages[id]) {
+                module = FuseBox.import('~/' + id);
+            }
+            else {
+                module = FuseBox.import(id);
+            }
         }
         module = ensureOriginOnExports(module, id);
         return Promise.resolve(module);
@@ -165,9 +201,9 @@ class FuseAureliaLoader extends aurelia_loader_1.Loader {
     */
     addPlugin(pluginName, implementation) {
         console.log("addPlugin =>", pluginName, implementation);
-        // if(!this.loaderPlugins[pluginName]) {
-        this.loaderPlugins[pluginName] = implementation;
-        // }
+        if (!this.loaderPlugins[pluginName]) {
+            this.loaderPlugins[pluginName] = implementation;
+        }
     }
     /**
     * Normalizes a module id.
@@ -196,7 +232,7 @@ class FuseAureliaLoader extends aurelia_loader_1.Loader {
             if (!plugin) {
                 throw new Error(`Plugin ${loaderPlugin} is not registered in the loader.`);
             }
-            return plugin.fetch(moduleId);
+            return Promise.resolve(plugin.fetch(moduleId));
         }
         //throw new Error(`Unable to find module with ID: ${moduleId}`);
         return null;
@@ -236,7 +272,7 @@ class TextTemplateLoader {
     loadTemplate(loader, entry) {
         return loader.loadText(entry.address).then(text => {
             console.log(text);
-            entry.template = aurelia_pal_1.DOM.createTemplateFromMarkup(text.default);
+            entry.template = aurelia_pal_1.DOM.createTemplateFromMarkup(text);
         });
     }
 }
@@ -245,17 +281,431 @@ exports.TextTemplateLoader = TextTemplateLoader;
 });
 ___scope___.file("app.html", function(exports, require, module, __filename, __dirname){ 
 
-module.exports.default =  "<template>\r\n    <h1>${title}</h1>\r\n    test\r\n</template>"
+module.exports.default =  "<template>\n  <require from=\"nav-bar.html\"></require>\n\n  <nav-bar router.bind=\"router\"></nav-bar>\n\n  <div class=\"page-host\">\n    <router-view></router-view>\n  </div>\n</template>\n"
+});
+___scope___.file("child-router.html", function(exports, require, module, __filename, __dirname){ 
+
+module.exports.default =  "<template>\n  <section class=\"au-animate\">\n    <h2>${heading}</h2>\n    <div>\n      <div class=\"col-md-2\">\n        <ul class=\"well nav nav-pills nav-stacked\">\n          <li repeat.for=\"row of router.navigation\" class=\"${row.isActive ? 'active' : ''}\">\n            <a href.bind=\"row.href\">${row.title}</a>\n          </li>\n        </ul>\n      </div>\n      <div class=\"col-md-10\" style=\"padding: 0\">\n        <router-view></router-view>\n      </div>\n    </div>\n  </section>\n</template>\n"
+});
+___scope___.file("nav-bar.html", function(exports, require, module, __filename, __dirname){ 
+
+module.exports.default =  "<template bindable=\"router\">\n  <nav class=\"navbar navbar-default navbar-fixed-top\" role=\"navigation\">\n    <div class=\"navbar-header\">\n      <button type=\"button\" class=\"navbar-toggle\" data-toggle=\"collapse\" data-target=\"#bs-example-navbar-collapse-1\">\n        <span class=\"sr-only\">Toggle Navigation</span>\n        <span class=\"icon-bar\"></span>\n        <span class=\"icon-bar\"></span>\n        <span class=\"icon-bar\"></span>\n      </button>\n      <a class=\"navbar-brand\" href=\"#\">\n        <i class=\"fa fa-home\"></i>\n        <span>${router.title}</span>\n      </a>\n    </div>\n\n    <div class=\"collapse navbar-collapse\" id=\"bs-example-navbar-collapse-1\">\n      <ul class=\"nav navbar-nav\">\n        <li repeat.for=\"row of router.navigation\" class=\"${row.isActive ? 'active' : ''}\">\n          <a data-toggle=\"collapse\" data-target=\"#bs-example-navbar-collapse-1.in\" href.bind=\"row.href\">${row.title}</a>\n        </li>\n      </ul>\n\n      <ul class=\"nav navbar-nav navbar-right\">\n        <li class=\"loader\" if.bind=\"router.isNavigating\">\n          <i class=\"fa fa-spinner fa-spin fa-2x\"></i>\n        </li>\n      </ul>\n    </div>\n  </nav>\n</template>\n"
+});
+___scope___.file("users.html", function(exports, require, module, __filename, __dirname){ 
+
+module.exports.default =  "<template>\n  <require from=\"blur-image\"></require>\n\n  <section class=\"au-animate\">\n      <h2>${heading}</h2>\n      <div class=\"row au-stagger\">\n        <div class=\"col-sm-6 col-md-3 card-container au-animate\" repeat.for=\"user of users\">\n            <div class=\"card\">\n                <canvas class=\"header-bg\" width=\"250\" height=\"70\" blur-image.bind=\"image\"></canvas>\n                <div class=\"avatar\">\n                    <img src.bind=\"user.avatar_url\" crossorigin ref=\"image\"/>\n                </div>\n                <div class=\"content\">\n                    <p class=\"name\">${user.login}</p>\n                    <p><a target=\"_blank\" class=\"btn btn-default\" href.bind=\"user.html_url\">Contact</a></p>\n                </div>\n            </div>\n        </div>\n      </div>\n  </section>\n</template>\n"
+});
+___scope___.file("welcome.html", function(exports, require, module, __filename, __dirname){ 
+
+module.exports.default =  "<template>\n  <section class=\"au-animate\">\n    <h2>${heading}</h2>\n    <form role=\"form\" submit.delegate=\"submit()\">\n      <div class=\"form-group\">\n        <label for=\"fn\">First Name</label>\n        <input type=\"text\" value.bind=\"firstName\" class=\"form-control\" id=\"fn\" placeholder=\"first name\">\n      </div>\n      <div class=\"form-group\">\n        <label for=\"ln\">Last Name</label>\n        <input type=\"text\" value.bind=\"lastName\" class=\"form-control\" id=\"ln\" placeholder=\"last name\">\n      </div>\n      <div class=\"form-group\">\n        <label>Full Name</label>\n        <p class=\"help-block\">${fullName | upper}</p>\n      </div>\n      <button type=\"submit\" class=\"btn btn-default\">Submit</button>\n    </form>\n  </section>\n</template>\n"
 });
 ___scope___.file("app.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 class App {
-    constructor() {
-        this.title = "hello FuseBox";
+    configureRouter(config, router) {
+        config.title = 'Aurelia';
+        config.map([
+            { route: ['', 'welcome'], name: 'welcome', moduleId: 'welcome', nav: true, title: 'Welcome' },
+            { route: 'users', name: 'users', moduleId: 'users', nav: true, title: 'Github Users' },
+            { route: 'child-router', name: 'child-router', moduleId: 'child-router', nav: true, title: 'Child Router' }
+        ]);
+        this.router = router;
     }
 }
 exports.App = App;
+
+});
+___scope___.file("blur-image.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+const aurelia_framework_1 = require("aurelia-framework");
+let BlurImageCustomAttribute = class BlurImageCustomAttribute {
+    constructor(element) {
+        this.element = element;
+        this.element = element;
+    }
+    valueChanged(newImage) {
+        if (newImage.complete) {
+            drawBlur(this.element, newImage);
+        }
+        else {
+            newImage.onload = () => drawBlur(this.element, newImage);
+        }
+    }
+};
+BlurImageCustomAttribute = __decorate([
+    aurelia_framework_1.autoinject,
+    __metadata("design:paramtypes", [Object])
+], BlurImageCustomAttribute);
+exports.BlurImageCustomAttribute = BlurImageCustomAttribute;
+/* tslint:disable */
+/*
+This Snippet is using a modified Stack Blur js lib for blurring the header images.
+*/
+/*
+
+StackBlur - a fast almost Gaussian Blur For Canvas
+
+Version:     0.5
+Author:		Mario Klingemann
+Contact: 	mario@quasimondo.com
+Website:	http://www.quasimondo.com/StackBlurForCanvas
+Twitter:	@quasimondo
+
+In case you find this class useful - especially in commercial projects -
+I am not totally unhappy for a small donation to my PayPal account
+mario@quasimondo.de
+
+Or support me on flattr:
+https://flattr.com/thing/72791/StackBlur-a-fast-almost-Gaussian-Blur-Effect-for-CanvasJavascript
+
+Copyright (c) 2010 Mario Klingemann
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+*/
+var mul_table = [
+    512, 512, 456, 512, 328, 456, 335, 512, 405, 328, 271, 456, 388, 335, 292, 512,
+    454, 405, 364, 328, 298, 271, 496, 456, 420, 388, 360, 335, 312, 292, 273, 512,
+    482, 454, 428, 405, 383, 364, 345, 328, 312, 298, 284, 271, 259, 496, 475, 456,
+    437, 420, 404, 388, 374, 360, 347, 335, 323, 312, 302, 292, 282, 273, 265, 512,
+    497, 482, 468, 454, 441, 428, 417, 405, 394, 383, 373, 364, 354, 345, 337, 328,
+    320, 312, 305, 298, 291, 284, 278, 271, 265, 259, 507, 496, 485, 475, 465, 456,
+    446, 437, 428, 420, 412, 404, 396, 388, 381, 374, 367, 360, 354, 347, 341, 335,
+    329, 323, 318, 312, 307, 302, 297, 292, 287, 282, 278, 273, 269, 265, 261, 512,
+    505, 497, 489, 482, 475, 468, 461, 454, 447, 441, 435, 428, 422, 417, 411, 405,
+    399, 394, 389, 383, 378, 373, 368, 364, 359, 354, 350, 345, 341, 337, 332, 328,
+    324, 320, 316, 312, 309, 305, 301, 298, 294, 291, 287, 284, 281, 278, 274, 271,
+    268, 265, 262, 259, 257, 507, 501, 496, 491, 485, 480, 475, 470, 465, 460, 456,
+    451, 446, 442, 437, 433, 428, 424, 420, 416, 412, 408, 404, 400, 396, 392, 388,
+    385, 381, 377, 374, 370, 367, 363, 360, 357, 354, 350, 347, 344, 341, 338, 335,
+    332, 329, 326, 323, 320, 318, 315, 312, 310, 307, 304, 302, 299, 297, 294, 292,
+    289, 287, 285, 282, 280, 278, 275, 273, 271, 269, 267, 265, 263, 261, 259
+];
+var shg_table = [
+    9, 11, 12, 13, 13, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17,
+    17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19,
+    19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20,
+    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 21,
+    21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
+    21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
+    22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 23,
+    23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23,
+    23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23,
+    23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23,
+    23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+    24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+    24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+    24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+    24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24
+];
+var BLUR_RADIUS = 40;
+function stackBlurCanvasRGBA(canvas, top_x, top_y, width, height, radius) {
+    if (isNaN(radius) || radius < 1)
+        return;
+    radius |= 0;
+    var context = canvas.getContext("2d");
+    var imageData;
+    try {
+        imageData = context.getImageData(top_x, top_y, width, height);
+    }
+    catch (e) {
+        throw new Error("unable to access image data: " + e);
+    }
+    var pixels = imageData.data;
+    var x, y, i, p, yp, yi, yw, r_sum, g_sum, b_sum, a_sum, r_out_sum, g_out_sum, b_out_sum, a_out_sum, r_in_sum, g_in_sum, b_in_sum, a_in_sum, pr, pg, pb, pa, rbs;
+    var div = radius + radius + 1;
+    var w4 = width << 2;
+    var widthMinus1 = width - 1;
+    var heightMinus1 = height - 1;
+    var radiusPlus1 = radius + 1;
+    var sumFactor = radiusPlus1 * (radiusPlus1 + 1) / 2;
+    var stackStart = new BlurStack();
+    var stack = stackStart;
+    for (i = 1; i < div; i++) {
+        stack = stack.next = new BlurStack();
+        if (i == radiusPlus1)
+            var stackEnd = stack;
+    }
+    stack.next = stackStart;
+    var stackIn = null;
+    var stackOut = null;
+    yw = yi = 0;
+    var mul_sum = mul_table[radius];
+    var shg_sum = shg_table[radius];
+    for (y = 0; y < height; y++) {
+        r_in_sum = g_in_sum = b_in_sum = a_in_sum = r_sum = g_sum = b_sum = a_sum = 0;
+        r_out_sum = radiusPlus1 * (pr = pixels[yi]);
+        g_out_sum = radiusPlus1 * (pg = pixels[yi + 1]);
+        b_out_sum = radiusPlus1 * (pb = pixels[yi + 2]);
+        a_out_sum = radiusPlus1 * (pa = pixels[yi + 3]);
+        r_sum += sumFactor * pr;
+        g_sum += sumFactor * pg;
+        b_sum += sumFactor * pb;
+        a_sum += sumFactor * pa;
+        stack = stackStart;
+        for (i = 0; i < radiusPlus1; i++) {
+            stack.r = pr;
+            stack.g = pg;
+            stack.b = pb;
+            stack.a = pa;
+            stack = stack.next;
+        }
+        for (i = 1; i < radiusPlus1; i++) {
+            p = yi + ((widthMinus1 < i ? widthMinus1 : i) << 2);
+            r_sum += (stack.r = (pr = pixels[p])) * (rbs = radiusPlus1 - i);
+            g_sum += (stack.g = (pg = pixels[p + 1])) * rbs;
+            b_sum += (stack.b = (pb = pixels[p + 2])) * rbs;
+            a_sum += (stack.a = (pa = pixels[p + 3])) * rbs;
+            r_in_sum += pr;
+            g_in_sum += pg;
+            b_in_sum += pb;
+            a_in_sum += pa;
+            stack = stack.next;
+        }
+        stackIn = stackStart;
+        stackOut = stackEnd;
+        for (x = 0; x < width; x++) {
+            pixels[yi + 3] = pa = (a_sum * mul_sum) >> shg_sum;
+            if (pa != 0) {
+                pa = 255 / pa;
+                pixels[yi] = ((r_sum * mul_sum) >> shg_sum) * pa;
+                pixels[yi + 1] = ((g_sum * mul_sum) >> shg_sum) * pa;
+                pixels[yi + 2] = ((b_sum * mul_sum) >> shg_sum) * pa;
+            }
+            else {
+                pixels[yi] = pixels[yi + 1] = pixels[yi + 2] = 0;
+            }
+            r_sum -= r_out_sum;
+            g_sum -= g_out_sum;
+            b_sum -= b_out_sum;
+            a_sum -= a_out_sum;
+            r_out_sum -= stackIn.r;
+            g_out_sum -= stackIn.g;
+            b_out_sum -= stackIn.b;
+            a_out_sum -= stackIn.a;
+            p = (yw + ((p = x + radius + 1) < widthMinus1 ? p : widthMinus1)) << 2;
+            r_in_sum += (stackIn.r = pixels[p]);
+            g_in_sum += (stackIn.g = pixels[p + 1]);
+            b_in_sum += (stackIn.b = pixels[p + 2]);
+            a_in_sum += (stackIn.a = pixels[p + 3]);
+            r_sum += r_in_sum;
+            g_sum += g_in_sum;
+            b_sum += b_in_sum;
+            a_sum += a_in_sum;
+            stackIn = stackIn.next;
+            r_out_sum += (pr = stackOut.r);
+            g_out_sum += (pg = stackOut.g);
+            b_out_sum += (pb = stackOut.b);
+            a_out_sum += (pa = stackOut.a);
+            r_in_sum -= pr;
+            g_in_sum -= pg;
+            b_in_sum -= pb;
+            a_in_sum -= pa;
+            stackOut = stackOut.next;
+            yi += 4;
+        }
+        yw += width;
+    }
+    for (x = 0; x < width; x++) {
+        g_in_sum = b_in_sum = a_in_sum = r_in_sum = g_sum = b_sum = a_sum = r_sum = 0;
+        yi = x << 2;
+        r_out_sum = radiusPlus1 * (pr = pixels[yi]);
+        g_out_sum = radiusPlus1 * (pg = pixels[yi + 1]);
+        b_out_sum = radiusPlus1 * (pb = pixels[yi + 2]);
+        a_out_sum = radiusPlus1 * (pa = pixels[yi + 3]);
+        r_sum += sumFactor * pr;
+        g_sum += sumFactor * pg;
+        b_sum += sumFactor * pb;
+        a_sum += sumFactor * pa;
+        stack = stackStart;
+        for (i = 0; i < radiusPlus1; i++) {
+            stack.r = pr;
+            stack.g = pg;
+            stack.b = pb;
+            stack.a = pa;
+            stack = stack.next;
+        }
+        yp = width;
+        for (i = 1; i <= radius; i++) {
+            yi = (yp + x) << 2;
+            r_sum += (stack.r = (pr = pixels[yi])) * (rbs = radiusPlus1 - i);
+            g_sum += (stack.g = (pg = pixels[yi + 1])) * rbs;
+            b_sum += (stack.b = (pb = pixels[yi + 2])) * rbs;
+            a_sum += (stack.a = (pa = pixels[yi + 3])) * rbs;
+            r_in_sum += pr;
+            g_in_sum += pg;
+            b_in_sum += pb;
+            a_in_sum += pa;
+            stack = stack.next;
+            if (i < heightMinus1) {
+                yp += width;
+            }
+        }
+        yi = x;
+        stackIn = stackStart;
+        stackOut = stackEnd;
+        for (y = 0; y < height; y++) {
+            p = yi << 2;
+            pixels[p + 3] = pa = (a_sum * mul_sum) >> shg_sum;
+            if (pa > 0) {
+                pa = 255 / pa;
+                pixels[p] = ((r_sum * mul_sum) >> shg_sum) * pa;
+                pixels[p + 1] = ((g_sum * mul_sum) >> shg_sum) * pa;
+                pixels[p + 2] = ((b_sum * mul_sum) >> shg_sum) * pa;
+            }
+            else {
+                pixels[p] = pixels[p + 1] = pixels[p + 2] = 0;
+            }
+            r_sum -= r_out_sum;
+            g_sum -= g_out_sum;
+            b_sum -= b_out_sum;
+            a_sum -= a_out_sum;
+            r_out_sum -= stackIn.r;
+            g_out_sum -= stackIn.g;
+            b_out_sum -= stackIn.b;
+            a_out_sum -= stackIn.a;
+            p = (x + (((p = y + radiusPlus1) < heightMinus1 ? p : heightMinus1) * width)) << 2;
+            r_sum += (r_in_sum += (stackIn.r = pixels[p]));
+            g_sum += (g_in_sum += (stackIn.g = pixels[p + 1]));
+            b_sum += (b_in_sum += (stackIn.b = pixels[p + 2]));
+            a_sum += (a_in_sum += (stackIn.a = pixels[p + 3]));
+            stackIn = stackIn.next;
+            r_out_sum += (pr = stackOut.r);
+            g_out_sum += (pg = stackOut.g);
+            b_out_sum += (pb = stackOut.b);
+            a_out_sum += (pa = stackOut.a);
+            r_in_sum -= pr;
+            g_in_sum -= pg;
+            b_in_sum -= pb;
+            a_in_sum -= pa;
+            stackOut = stackOut.next;
+            yi += width;
+        }
+    }
+    context.putImageData(imageData, top_x, top_y);
+}
+function BlurStack() {
+    this.r = 0;
+    this.g = 0;
+    this.b = 0;
+    this.a = 0;
+    this.next = null;
+}
+function drawBlur(canvas, image) {
+    var w = canvas.width;
+    var h = canvas.height;
+    var canvasContext = canvas.getContext('2d');
+    canvasContext.drawImage(image, 0, 0, w, h);
+    stackBlurCanvasRGBA(canvas, 0, 0, w, h, BLUR_RADIUS);
+}
+;
+
+});
+___scope___.file("child-router.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+class ChildRouter {
+    constructor() {
+        this.heading = 'Child Router';
+    }
+    configureRouter(config, router) {
+        config.map([
+            { route: ['', 'welcome'], name: 'welcome', moduleId: 'welcome', nav: true, title: 'Welcome' },
+            { route: 'users', name: 'users', moduleId: 'users', nav: true, title: 'Github Users' },
+            { route: 'child-router', name: 'child-router', moduleId: 'child-router', nav: true, title: 'Child Router' }
+        ]);
+        this.router = router;
+    }
+}
+exports.ChildRouter = ChildRouter;
+
+});
+___scope___.file("users.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+const aurelia_framework_1 = require("aurelia-framework");
+const aurelia_fetch_client_1 = require("aurelia-fetch-client");
+let Users = class Users {
+    constructor(http) {
+        this.http = http;
+        this.heading = 'Github Users';
+        this.users = [];
+        http.configure(config => {
+            config
+                .useStandardConfiguration()
+                .withBaseUrl('https://api.github.com/');
+        });
+    }
+    activate() {
+        return this.http.fetch('users')
+            .then(response => response.json())
+            .then(users => this.users = users);
+    }
+};
+Users = __decorate([
+    aurelia_framework_1.autoinject,
+    __metadata("design:paramtypes", [typeof (_a = typeof aurelia_fetch_client_1.HttpClient !== "undefined" && aurelia_fetch_client_1.HttpClient) === "function" && _a || Object])
+], Users);
+exports.Users = Users;
+var _a;
+
+});
+___scope___.file("welcome.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+class Welcome {
+    constructor() {
+        this.heading = 'Welcome to the Aurelia Navigation App!';
+        this.firstName = 'John';
+        this.lastName = 'Doe';
+        this.previousValue = this.fullName;
+    }
+    // Getters can't be directly observed, so they must be dirty checked.
+    // However, if you tell Aurelia the dependencies, it no longer needs to dirty check the property.
+    // To optimize by declaring the properties that this getter is computed from, uncomment the line below
+    // as well as the corresponding import above.
+    // @computedFrom('firstName', 'lastName')
+    get fullName() {
+        return `${this.firstName} ${this.lastName}`;
+    }
+    submit() {
+        this.previousValue = this.fullName;
+        alert(`Welcome, ${this.fullName}!`);
+    }
+    canDeactivate() {
+        if (this.fullName !== this.previousValue) {
+            return confirm('Are you sure you want to leave?');
+        }
+    }
+}
+exports.Welcome = Welcome;
+class UpperValueConverter {
+    toView(value) {
+        return value && value.toUpperCase();
+    }
+}
+exports.UpperValueConverter = UpperValueConverter;
 
 });
 });
@@ -14437,6 +14887,264 @@ var TemplatingEngine = exports.TemplatingEngine = (_dec11 = (0, _aureliaDependen
 });
 return ___scope___.entry = "dist/commonjs/aurelia-templating.js";
 });
+FuseBox.pkg("aurelia-fetch-client", {}, function(___scope___){
+___scope___.file("dist/commonjs/aurelia-fetch-client.js", function(exports, require, module, __filename, __dirname){ 
+
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+exports.json = json;
+
+
+
+function json(body) {
+  return new Blob([JSON.stringify(body)], { type: 'application/json' });
+}
+
+var HttpClientConfiguration = exports.HttpClientConfiguration = function () {
+  function HttpClientConfiguration() {
+    
+
+    this.baseUrl = '';
+    this.defaults = {};
+    this.interceptors = [];
+  }
+
+  HttpClientConfiguration.prototype.withBaseUrl = function withBaseUrl(baseUrl) {
+    this.baseUrl = baseUrl;
+    return this;
+  };
+
+  HttpClientConfiguration.prototype.withDefaults = function withDefaults(defaults) {
+    this.defaults = defaults;
+    return this;
+  };
+
+  HttpClientConfiguration.prototype.withInterceptor = function withInterceptor(interceptor) {
+    this.interceptors.push(interceptor);
+    return this;
+  };
+
+  HttpClientConfiguration.prototype.useStandardConfiguration = function useStandardConfiguration() {
+    var standardConfig = { credentials: 'same-origin' };
+    Object.assign(this.defaults, standardConfig, this.defaults);
+    return this.rejectErrorResponses();
+  };
+
+  HttpClientConfiguration.prototype.rejectErrorResponses = function rejectErrorResponses() {
+    return this.withInterceptor({ response: rejectOnError });
+  };
+
+  return HttpClientConfiguration;
+}();
+
+function rejectOnError(response) {
+  if (!response.ok) {
+    throw response;
+  }
+
+  return response;
+}
+
+var HttpClient = exports.HttpClient = function () {
+  function HttpClient() {
+    
+
+    this.activeRequestCount = 0;
+    this.isRequesting = false;
+    this.isConfigured = false;
+    this.baseUrl = '';
+    this.defaults = null;
+    this.interceptors = [];
+
+    if (typeof fetch === 'undefined') {
+      throw new Error('HttpClient requires a Fetch API implementation, but the current environment doesn\'t support it. You may need to load a polyfill such as https://github.com/github/fetch.');
+    }
+  }
+
+  HttpClient.prototype.configure = function configure(config) {
+    var normalizedConfig = void 0;
+
+    if ((typeof config === 'undefined' ? 'undefined' : _typeof(config)) === 'object') {
+      normalizedConfig = { defaults: config };
+    } else if (typeof config === 'function') {
+      normalizedConfig = new HttpClientConfiguration();
+      normalizedConfig.baseUrl = this.baseUrl;
+      normalizedConfig.defaults = Object.assign({}, this.defaults);
+      normalizedConfig.interceptors = this.interceptors;
+
+      var c = config(normalizedConfig);
+      if (HttpClientConfiguration.prototype.isPrototypeOf(c)) {
+        normalizedConfig = c;
+      }
+    } else {
+      throw new Error('invalid config');
+    }
+
+    var defaults = normalizedConfig.defaults;
+    if (defaults && Headers.prototype.isPrototypeOf(defaults.headers)) {
+      throw new Error('Default headers must be a plain object.');
+    }
+
+    this.baseUrl = normalizedConfig.baseUrl;
+    this.defaults = defaults;
+    this.interceptors = normalizedConfig.interceptors || [];
+    this.isConfigured = true;
+
+    return this;
+  };
+
+  HttpClient.prototype.fetch = function (_fetch) {
+    function fetch(_x, _x2) {
+      return _fetch.apply(this, arguments);
+    }
+
+    fetch.toString = function () {
+      return _fetch.toString();
+    };
+
+    return fetch;
+  }(function (input, init) {
+    var _this = this;
+
+    trackRequestStart.call(this);
+
+    var request = Promise.resolve().then(function () {
+      return buildRequest.call(_this, input, init, _this.defaults);
+    });
+    var promise = processRequest(request, this.interceptors).then(function (result) {
+      var response = null;
+
+      if (Response.prototype.isPrototypeOf(result)) {
+        response = result;
+      } else if (Request.prototype.isPrototypeOf(result)) {
+        request = Promise.resolve(result);
+        response = fetch(result);
+      } else {
+        throw new Error('An invalid result was returned by the interceptor chain. Expected a Request or Response instance, but got [' + result + ']');
+      }
+
+      return request.then(function (_request) {
+        return processResponse(response, _this.interceptors, _request);
+      });
+    });
+
+    return trackRequestEndWith.call(this, promise);
+  });
+
+  return HttpClient;
+}();
+
+var absoluteUrlRegexp = /^([a-z][a-z0-9+\-.]*:)?\/\//i;
+
+function trackRequestStart() {
+  this.isRequesting = !! ++this.activeRequestCount;
+}
+
+function trackRequestEnd() {
+  this.isRequesting = !! --this.activeRequestCount;
+}
+
+function trackRequestEndWith(promise) {
+  var handle = trackRequestEnd.bind(this);
+  promise.then(handle, handle);
+  return promise;
+}
+
+function parseHeaderValues(headers) {
+  var parsedHeaders = {};
+  for (var name in headers || {}) {
+    if (headers.hasOwnProperty(name)) {
+      parsedHeaders[name] = typeof headers[name] === 'function' ? headers[name]() : headers[name];
+    }
+  }
+  return parsedHeaders;
+}
+
+function buildRequest(input, init) {
+  var defaults = this.defaults || {};
+  var request = void 0;
+  var body = void 0;
+  var requestContentType = void 0;
+
+  var parsedDefaultHeaders = parseHeaderValues(defaults.headers);
+  if (Request.prototype.isPrototypeOf(input)) {
+    request = input;
+    requestContentType = new Headers(request.headers).get('Content-Type');
+  } else {
+    init || (init = {});
+    body = init.body;
+    var bodyObj = body ? { body: body } : null;
+    var requestInit = Object.assign({}, defaults, { headers: {} }, init, bodyObj);
+    requestContentType = new Headers(requestInit.headers).get('Content-Type');
+    request = new Request(getRequestUrl(this.baseUrl, input), requestInit);
+  }
+  if (!requestContentType && new Headers(parsedDefaultHeaders).has('content-type')) {
+    request.headers.set('Content-Type', new Headers(parsedDefaultHeaders).get('content-type'));
+  }
+  setDefaultHeaders(request.headers, parsedDefaultHeaders);
+  if (body && Blob.prototype.isPrototypeOf(body) && body.type) {
+    request.headers.set('Content-Type', body.type);
+  }
+  return request;
+}
+
+function getRequestUrl(baseUrl, url) {
+  if (absoluteUrlRegexp.test(url)) {
+    return url;
+  }
+
+  return (baseUrl || '') + url;
+}
+
+function setDefaultHeaders(headers, defaultHeaders) {
+  for (var name in defaultHeaders || {}) {
+    if (defaultHeaders.hasOwnProperty(name) && !headers.has(name)) {
+      headers.set(name, defaultHeaders[name]);
+    }
+  }
+}
+
+function processRequest(request, interceptors) {
+  return applyInterceptors(request, interceptors, 'request', 'requestError');
+}
+
+function processResponse(response, interceptors, request) {
+  return applyInterceptors(response, interceptors, 'response', 'responseError', request);
+}
+
+function applyInterceptors(input, interceptors, successName, errorName) {
+  for (var _len = arguments.length, interceptorArgs = Array(_len > 4 ? _len - 4 : 0), _key = 4; _key < _len; _key++) {
+    interceptorArgs[_key - 4] = arguments[_key];
+  }
+
+  return (interceptors || []).reduce(function (chain, interceptor) {
+    var successHandler = interceptor[successName];
+    var errorHandler = interceptor[errorName];
+
+    return chain.then(successHandler && function (value) {
+      return successHandler.call.apply(successHandler, [interceptor, value].concat(interceptorArgs));
+    } || identity, errorHandler && function (reason) {
+      return errorHandler.call.apply(errorHandler, [interceptor, reason].concat(interceptorArgs));
+    } || thrower);
+  }, Promise.resolve(input));
+}
+
+function identity(x) {
+  return x;
+}
+
+function thrower(x) {
+  throw x;
+}
+});
+return ___scope___.entry = "dist/commonjs/aurelia-fetch-client.js";
+});
 FuseBox.pkg("aurelia-pal-browser", {}, function(___scope___){
 ___scope___.file("dist/commonjs/aurelia-pal-browser.js", function(exports, require, module, __filename, __dirname){ 
 
@@ -14950,6 +15658,514 @@ function initialize() {
 }
 });
 return ___scope___.entry = "dist/commonjs/aurelia-pal-browser.js";
+});
+FuseBox.pkg("aurelia-animator-css", {}, function(___scope___){
+___scope___.file("dist/commonjs/aurelia-animator-css.js", function(exports, require, module, __filename, __dirname){ 
+
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.CssAnimator = undefined;
+exports.configure = configure;
+
+var _aureliaTemplating = require('aurelia-templating');
+
+var _aureliaPal = require('aurelia-pal');
+
+
+
+var CssAnimator = exports.CssAnimator = function () {
+  function CssAnimator() {
+    
+
+    this.useAnimationDoneClasses = false;
+    this.animationEnteredClass = 'au-entered';
+    this.animationLeftClass = 'au-left';
+    this.isAnimating = false;
+
+    this.verifyKeyframesExist = true;
+  }
+
+  CssAnimator.prototype._addMultipleEventListener = function _addMultipleEventListener(el, s, fn) {
+    var evts = s.split(' ');
+    for (var i = 0, ii = evts.length; i < ii; ++i) {
+      el.addEventListener(evts[i], fn, false);
+    }
+  };
+
+  CssAnimator.prototype._removeMultipleEventListener = function _removeMultipleEventListener(el, s, fn) {
+    var evts = s.split(' ');
+    for (var i = 0, ii = evts.length; i < ii; ++i) {
+      el.removeEventListener(evts[i], fn, false);
+    }
+  };
+
+  CssAnimator.prototype._getElementAnimationDelay = function _getElementAnimationDelay(element) {
+    var styl = _aureliaPal.DOM.getComputedStyle(element);
+    var prop = void 0;
+    var delay = void 0;
+
+    if (styl.getPropertyValue('animation-delay')) {
+      prop = 'animation-delay';
+    } else if (styl.getPropertyValue('-webkit-animation-delay')) {
+      prop = '-webkit-animation-delay';
+    } else if (styl.getPropertyValue('-moz-animation-delay')) {
+      prop = '-moz-animation-delay';
+    } else {
+      return 0;
+    }
+
+    delay = styl.getPropertyValue(prop);
+    delay = Number(delay.replace(/[^\d\.]/g, ''));
+
+    return delay * 1000;
+  };
+
+  CssAnimator.prototype._getElementAnimationNames = function _getElementAnimationNames(element) {
+    var styl = _aureliaPal.DOM.getComputedStyle(element);
+    var prefix = void 0;
+
+    if (styl.getPropertyValue('animation-name')) {
+      prefix = '';
+    } else if (styl.getPropertyValue('-webkit-animation-name')) {
+      prefix = '-webkit-';
+    } else if (styl.getPropertyValue('-moz-animation-name')) {
+      prefix = '-moz-';
+    } else {
+      return [];
+    }
+
+    var animationNames = styl.getPropertyValue(prefix + 'animation-name');
+    return animationNames ? animationNames.split(' ') : [];
+  };
+
+  CssAnimator.prototype._performSingleAnimate = function _performSingleAnimate(element, className) {
+    var _this = this;
+
+    this._triggerDOMEvent(_aureliaTemplating.animationEvent.animateBegin, element);
+
+    return this.addClass(element, className, true).then(function (result) {
+      _this._triggerDOMEvent(_aureliaTemplating.animationEvent.animateActive, element);
+
+      if (result !== false) {
+        return _this.removeClass(element, className, true).then(function () {
+          _this._triggerDOMEvent(_aureliaTemplating.animationEvent.animateDone, element);
+        });
+      }
+
+      return false;
+    }).catch(function () {
+      _this._triggerDOMEvent(_aureliaTemplating.animationEvent.animateTimeout, element);
+    });
+  };
+
+  CssAnimator.prototype._triggerDOMEvent = function _triggerDOMEvent(eventType, element) {
+    var evt = _aureliaPal.DOM.createCustomEvent(eventType, { bubbles: true, cancelable: true, detail: element });
+    _aureliaPal.DOM.dispatchEvent(evt);
+  };
+
+  CssAnimator.prototype._animationChangeWithValidKeyframe = function _animationChangeWithValidKeyframe(animationNames, prevAnimationNames) {
+    var newAnimationNames = animationNames.filter(function (name) {
+      return prevAnimationNames.indexOf(name) === -1;
+    });
+
+    if (newAnimationNames.length === 0) {
+      return false;
+    }
+
+    if (!this.verifyKeyframesExist) {
+      return true;
+    }
+
+    var keyframesRuleType = window.CSSRule.KEYFRAMES_RULE || window.CSSRule.MOZ_KEYFRAMES_RULE || window.CSSRule.WEBKIT_KEYFRAMES_RULE;
+
+    var styleSheets = document.styleSheets;
+
+    try {
+      for (var i = 0; i < styleSheets.length; ++i) {
+        var cssRules = null;
+
+        try {
+          cssRules = styleSheets[i].cssRules;
+        } catch (e) {}
+
+        if (!cssRules) {
+          continue;
+        }
+
+        for (var j = 0; j < cssRules.length; ++j) {
+          var cssRule = cssRules[j];
+
+          if (cssRule.type === keyframesRuleType) {
+            if (newAnimationNames.indexOf(cssRule.name) !== -1) {
+              return true;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+
+    return false;
+  };
+
+  CssAnimator.prototype.animate = function animate(element, className) {
+    var _this2 = this;
+
+    if (Array.isArray(element)) {
+      return Promise.all(element.map(function (el) {
+        return _this2._performSingleAnimate(el, className);
+      }));
+    }
+
+    return this._performSingleAnimate(element, className);
+  };
+
+  CssAnimator.prototype.runSequence = function runSequence(animations) {
+    var _this3 = this;
+
+    this._triggerDOMEvent(_aureliaTemplating.animationEvent.sequenceBegin, null);
+
+    return animations.reduce(function (p, anim) {
+      return p.then(function () {
+        return _this3.animate(anim.element, anim.className);
+      });
+    }, Promise.resolve(true)).then(function () {
+      _this3._triggerDOMEvent(_aureliaTemplating.animationEvent.sequenceDone, null);
+    });
+  };
+
+  CssAnimator.prototype.enter = function enter(element) {
+    var _this4 = this;
+
+    return new Promise(function (resolve, reject) {
+      var classList = element.classList;
+
+      _this4._triggerDOMEvent(_aureliaTemplating.animationEvent.enterBegin, element);
+
+      if (_this4.useAnimationDoneClasses) {
+        classList.remove(_this4.animationEnteredClass);
+        classList.remove(_this4.animationLeftClass);
+      }
+
+      classList.add('au-enter');
+      var prevAnimationNames = _this4._getElementAnimationNames(element);
+
+      var _animStart = void 0;
+      var animHasStarted = false;
+      _this4._addMultipleEventListener(element, 'webkitAnimationStart animationstart', _animStart = function animStart(evAnimStart) {
+        animHasStarted = true;
+        _this4.isAnimating = true;
+
+        _this4._triggerDOMEvent(_aureliaTemplating.animationEvent.enterActive, element);
+
+        evAnimStart.stopPropagation();
+
+        evAnimStart.target.removeEventListener(evAnimStart.type, _animStart);
+      }, false);
+
+      var _animEnd = void 0;
+      _this4._addMultipleEventListener(element, 'webkitAnimationEnd animationend', _animEnd = function animEnd(evAnimEnd) {
+        if (!animHasStarted) {
+          return;
+        }
+
+        evAnimEnd.stopPropagation();
+
+        classList.remove('au-enter-active');
+        classList.remove('au-enter');
+
+        evAnimEnd.target.removeEventListener(evAnimEnd.type, _animEnd);
+
+        if (_this4.useAnimationDoneClasses && _this4.animationEnteredClass !== undefined && _this4.animationEnteredClass !== null) {
+          classList.add(_this4.animationEnteredClass);
+        }
+
+        _this4.isAnimating = false;
+        _this4._triggerDOMEvent(_aureliaTemplating.animationEvent.enterDone, element);
+
+        resolve(true);
+      }, false);
+
+      var parent = element.parentElement;
+      var delay = 0;
+
+      var cleanupAnimation = function cleanupAnimation() {
+        var animationNames = _this4._getElementAnimationNames(element);
+        if (!_this4._animationChangeWithValidKeyframe(animationNames, prevAnimationNames)) {
+          classList.remove('au-enter-active');
+          classList.remove('au-enter');
+
+          _this4._removeMultipleEventListener(element, 'webkitAnimationEnd animationend', _animEnd);
+          _this4._removeMultipleEventListener(element, 'webkitAnimationStart animationstart', _animStart);
+
+          _this4._triggerDOMEvent(_aureliaTemplating.animationEvent.enterTimeout, element);
+          resolve(false);
+        }
+      };
+
+      if (parent !== null && parent !== undefined && (parent.classList.contains('au-stagger') || parent.classList.contains('au-stagger-enter'))) {
+        var elemPos = Array.prototype.indexOf.call(parent.children, element);
+        delay = _this4._getElementAnimationDelay(parent) * elemPos;
+
+        _this4._triggerDOMEvent(_aureliaTemplating.animationEvent.staggerNext, element);
+
+        setTimeout(function () {
+          classList.add('au-enter-active');
+          cleanupAnimation();
+        }, delay);
+      } else {
+        classList.add('au-enter-active');
+        cleanupAnimation();
+      }
+    });
+  };
+
+  CssAnimator.prototype.leave = function leave(element) {
+    var _this5 = this;
+
+    return new Promise(function (resolve, reject) {
+      var classList = element.classList;
+
+      _this5._triggerDOMEvent(_aureliaTemplating.animationEvent.leaveBegin, element);
+
+      if (_this5.useAnimationDoneClasses) {
+        classList.remove(_this5.animationEnteredClass);
+        classList.remove(_this5.animationLeftClass);
+      }
+
+      classList.add('au-leave');
+      var prevAnimationNames = _this5._getElementAnimationNames(element);
+
+      var _animStart2 = void 0;
+      var animHasStarted = false;
+      _this5._addMultipleEventListener(element, 'webkitAnimationStart animationstart', _animStart2 = function animStart(evAnimStart) {
+        animHasStarted = true;
+        _this5.isAnimating = true;
+
+        _this5._triggerDOMEvent(_aureliaTemplating.animationEvent.leaveActive, element);
+
+        evAnimStart.stopPropagation();
+
+        evAnimStart.target.removeEventListener(evAnimStart.type, _animStart2);
+      }, false);
+
+      var _animEnd2 = void 0;
+      _this5._addMultipleEventListener(element, 'webkitAnimationEnd animationend', _animEnd2 = function animEnd(evAnimEnd) {
+        if (!animHasStarted) {
+          return;
+        }
+
+        evAnimEnd.stopPropagation();
+
+        classList.remove('au-leave-active');
+        classList.remove('au-leave');
+
+        evAnimEnd.target.removeEventListener(evAnimEnd.type, _animEnd2);
+
+        if (_this5.useAnimationDoneClasses && _this5.animationLeftClass !== undefined && _this5.animationLeftClass !== null) {
+          classList.add(_this5.animationLeftClass);
+        }
+
+        _this5.isAnimating = false;
+        _this5._triggerDOMEvent(_aureliaTemplating.animationEvent.leaveDone, element);
+
+        resolve(true);
+      }, false);
+
+      var parent = element.parentElement;
+      var delay = 0;
+
+      var cleanupAnimation = function cleanupAnimation() {
+        var animationNames = _this5._getElementAnimationNames(element);
+        if (!_this5._animationChangeWithValidKeyframe(animationNames, prevAnimationNames)) {
+          classList.remove('au-leave-active');
+          classList.remove('au-leave');
+
+          _this5._removeMultipleEventListener(element, 'webkitAnimationEnd animationend', _animEnd2);
+          _this5._removeMultipleEventListener(element, 'webkitAnimationStart animationstart', _animStart2);
+
+          _this5._triggerDOMEvent(_aureliaTemplating.animationEvent.leaveTimeout, element);
+          resolve(false);
+        }
+      };
+
+      if (parent !== null && parent !== undefined && (parent.classList.contains('au-stagger') || parent.classList.contains('au-stagger-leave'))) {
+        var elemPos = Array.prototype.indexOf.call(parent.children, element);
+        delay = _this5._getElementAnimationDelay(parent) * elemPos;
+
+        _this5._triggerDOMEvent(_aureliaTemplating.animationEvent.staggerNext, element);
+
+        setTimeout(function () {
+          classList.add('au-leave-active');
+          cleanupAnimation();
+        }, delay);
+      } else {
+        classList.add('au-leave-active');
+        cleanupAnimation();
+      }
+    });
+  };
+
+  CssAnimator.prototype.removeClass = function removeClass(element, className) {
+    var _this6 = this;
+
+    var suppressEvents = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
+
+    return new Promise(function (resolve, reject) {
+      var classList = element.classList;
+
+      if (!classList.contains(className) && !classList.contains(className + '-add')) {
+        resolve(false);
+        return;
+      }
+
+      if (suppressEvents !== true) {
+        _this6._triggerDOMEvent(_aureliaTemplating.animationEvent.removeClassBegin, element);
+      }
+
+      classList.remove(className);
+      var prevAnimationNames = _this6._getElementAnimationNames(element);
+
+      var _animStart3 = void 0;
+      var animHasStarted = false;
+      _this6._addMultipleEventListener(element, 'webkitAnimationStart animationstart', _animStart3 = function animStart(evAnimStart) {
+        animHasStarted = true;
+        _this6.isAnimating = true;
+
+        if (suppressEvents !== true) {
+          _this6._triggerDOMEvent(_aureliaTemplating.animationEvent.removeClassActive, element);
+        }
+
+        evAnimStart.stopPropagation();
+
+        evAnimStart.target.removeEventListener(evAnimStart.type, _animStart3);
+      }, false);
+
+      var _animEnd3 = void 0;
+      _this6._addMultipleEventListener(element, 'webkitAnimationEnd animationend', _animEnd3 = function animEnd(evAnimEnd) {
+        if (!animHasStarted) {
+          return;
+        }
+
+        evAnimEnd.stopPropagation();
+
+        classList.remove(className + '-remove');
+
+        evAnimEnd.target.removeEventListener(evAnimEnd.type, _animEnd3);
+
+        _this6.isAnimating = false;
+
+        if (suppressEvents !== true) {
+          _this6._triggerDOMEvent(_aureliaTemplating.animationEvent.removeClassDone, element);
+        }
+
+        resolve(true);
+      }, false);
+
+      classList.add(className + '-remove');
+
+      var animationNames = _this6._getElementAnimationNames(element);
+      if (!_this6._animationChangeWithValidKeyframe(animationNames, prevAnimationNames)) {
+        classList.remove(className + '-remove');
+        classList.remove(className);
+
+        _this6._removeMultipleEventListener(element, 'webkitAnimationEnd animationend', _animEnd3);
+        _this6._removeMultipleEventListener(element, 'webkitAnimationStart animationstart', _animStart3);
+
+        if (suppressEvents !== true) {
+          _this6._triggerDOMEvent(_aureliaTemplating.animationEvent.removeClassTimeout, element);
+        }
+
+        resolve(false);
+      }
+    });
+  };
+
+  CssAnimator.prototype.addClass = function addClass(element, className) {
+    var _this7 = this;
+
+    var suppressEvents = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
+
+    return new Promise(function (resolve, reject) {
+      var classList = element.classList;
+
+      if (suppressEvents !== true) {
+        _this7._triggerDOMEvent(_aureliaTemplating.animationEvent.addClassBegin, element);
+      }
+
+      var _animStart4 = void 0;
+      var animHasStarted = false;
+      _this7._addMultipleEventListener(element, 'webkitAnimationStart animationstart', _animStart4 = function animStart(evAnimStart) {
+        animHasStarted = true;
+        _this7.isAnimating = true;
+
+        if (suppressEvents !== true) {
+          _this7._triggerDOMEvent(_aureliaTemplating.animationEvent.addClassActive, element);
+        }
+
+        evAnimStart.stopPropagation();
+
+        evAnimStart.target.removeEventListener(evAnimStart.type, _animStart4);
+      }, false);
+
+      var _animEnd4 = void 0;
+      _this7._addMultipleEventListener(element, 'webkitAnimationEnd animationend', _animEnd4 = function animEnd(evAnimEnd) {
+        if (!animHasStarted) {
+          return;
+        }
+
+        evAnimEnd.stopPropagation();
+
+        classList.add(className);
+
+        classList.remove(className + '-add');
+
+        evAnimEnd.target.removeEventListener(evAnimEnd.type, _animEnd4);
+
+        _this7.isAnimating = false;
+
+        if (suppressEvents !== true) {
+          _this7._triggerDOMEvent(_aureliaTemplating.animationEvent.addClassDone, element);
+        }
+
+        resolve(true);
+      }, false);
+
+      var prevAnimationNames = _this7._getElementAnimationNames(element);
+
+      classList.add(className + '-add');
+
+      var animationNames = _this7._getElementAnimationNames(element);
+      if (!_this7._animationChangeWithValidKeyframe(animationNames, prevAnimationNames)) {
+        classList.remove(className + '-add');
+        classList.add(className);
+
+        _this7._removeMultipleEventListener(element, 'webkitAnimationEnd animationend', _animEnd4);
+        _this7._removeMultipleEventListener(element, 'webkitAnimationStart animationstart', _animStart4);
+
+        if (suppressEvents !== true) {
+          _this7._triggerDOMEvent(_aureliaTemplating.animationEvent.addClassTimeout, element);
+        }
+
+        resolve(false);
+      }
+    });
+  };
+
+  return CssAnimator;
+}();
+
+function configure(config, callback) {
+  var animator = config.container.get(CssAnimator);
+  config.container.get(_aureliaTemplating.TemplatingEngine).configureAnimator(animator);
+  if (typeof callback === 'function') {
+    callback(animator);
+  }
+}
+});
+return ___scope___.entry = "dist/commonjs/aurelia-animator-css.js";
 });
 FuseBox.pkg("aurelia-logging-console", {}, function(___scope___){
 ___scope___.file("dist/commonjs/aurelia-logging-console.js", function(exports, require, module, __filename, __dirname){ 

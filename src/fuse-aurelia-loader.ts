@@ -52,7 +52,7 @@ export class FuseAureliaLoader extends Loader {
       'fetch': function(address) {
         console.log('fetch =>', address)
         let entry = that.getOrCreateTemplateRegistryEntry(address);
-        return entry.templateIsLoaded ? Promise.resolve(entry) : that.templateLoader.loadTemplate(that, entry).then(x => entry);
+        return entry.templateIsLoaded ? entry : that.templateLoader.loadTemplate(that, entry).then(x => entry);
       }
     });
     // this.addPlugin('html-resource-plugin', {
@@ -119,14 +119,13 @@ export class FuseAureliaLoader extends Loader {
   */
   loadText(url): Promise {
     console.log("loadText =>", url)
-    return Promise.resolve(FuseBox.import("~/" + url))
-    // return this._import(this.applyPluginToUrl(url, this.textPluginName)).then(textOrModule => {
-    //   if (typeof textOrModule === 'string') {
-    //     return textOrModule;
-    //   }
+    return Promise.resolve(FuseBox.import("~/" + url)).then(textOrModule => {
+       if (typeof textOrModule === 'string') {
+         return textOrModule;
+       }
 
-    //   return textOrModule['default'];
-    // });
+       return textOrModule['default'];
+     });
   }
 
   /**
@@ -137,28 +136,25 @@ export class FuseAureliaLoader extends Loader {
   loadModule(id) {
     console.log("loadModule =>", id)
     let module = null
-    if(id === 'main' || id === 'app') { // This is not correct, just for overview only
-      module = FuseBox.import('~/' + id)
-    }else if(id.startsWith("aurelia-templating-resources/")) { //This should be handled in a Plugin
+    if(id.startsWith("aurelia-templating-resources/")) { //This should be handled in a Plugin
       id = id.replace("aurelia-templating-resources", "aurelia-templating-resources/dist/commonjs")
       module = FuseBox.import(id)
     }else if(id.startsWith("aurelia-templating-router/")) { //This should be handled in a Plugin
       id = id.replace("aurelia-templating-router", "aurelia-templating-router/dist/commonjs")
       module = FuseBox.import(id)
     }
-    // else{
-    //   // module = this._import(id, false);  
-    //   // if(module === null) {
-    //      module = FuseBox.import(id)
-    //   // }
-    // }
     else if(id.startsWith("html-resource-plugin!")){
       module = this._import(id)
       // id = id.replace("html-resource-plugin!", "")
       console.log(module, id)
     }
     else{
-      module = FuseBox.import(id)
+
+      if(!FuseBox.packages[id]){
+        module = FuseBox.import('~/' + id)
+      } else {
+        module = FuseBox.import(id)
+      }
     }
     
     module = ensureOriginOnExports(module, id);
@@ -174,9 +170,9 @@ export class FuseAureliaLoader extends Loader {
   */
   addPlugin(pluginName, implementation) {
     console.log("addPlugin =>", pluginName, implementation)
-    // if(!this.loaderPlugins[pluginName]) {
+     if(!this.loaderPlugins[pluginName]) {
       this.loaderPlugins[pluginName] = implementation;
-    // }
+     }
   }
 
   /**
@@ -209,7 +205,7 @@ export class FuseAureliaLoader extends Loader {
       if (!plugin) {
         throw new Error(`Plugin ${loaderPlugin} is not registered in the loader.`);
       }
-      return plugin.fetch(moduleId);
+      return Promise.resolve(plugin.fetch(moduleId));
     }
     //throw new Error(`Unable to find module with ID: ${moduleId}`);
     return null
