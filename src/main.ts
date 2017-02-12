@@ -1,10 +1,11 @@
 
-// need to have these imports to make it work atm...
-import "./app"
-import "aurelia-framework"
-import "./fuse-aurelia-loader"
-import 'aurelia-bootstrapper';
+// add custom loader for fuse
+import './fuse-aurelia-loader'
 
+// start aurelia bootstrapper
+ import 'aurelia-bootstrapper';
+
+// aurelia configuration
 export function configure(aurelia) {
   aurelia.use
     .standardConfiguration()

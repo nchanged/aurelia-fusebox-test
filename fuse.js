@@ -11,9 +11,13 @@ let fuse = FuseBox.init({
 })
 
 
+
 fuse.devServer(`
     > main.ts
     + **/*.html 
+    + **/*.ts 
+    + aurelia-framework
+    + aurelia-polyfills
     + aurelia-pal-browser
     + aurelia-logging-console 
     + aurelia-templating-binding 
@@ -21,5 +25,4 @@ fuse.devServer(`
     + aurelia-event-aggregator 
     + aurelia-history-browser 
     + aurelia-templating-router
-    `
-    )
+    `)

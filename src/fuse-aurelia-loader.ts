@@ -52,7 +52,7 @@ export class FuseAureliaLoader extends Loader {
       'fetch': function(address) {
         console.log('fetch =>', address)
         let entry = that.getOrCreateTemplateRegistryEntry(address);
-        return entry.templateIsLoaded ? entry : that.templateLoader.loadTemplate(that, entry).then(x => entry);
+        return entry.templateIsLoaded ? Promise.resolve(entry) : that.templateLoader.loadTemplate(that, entry).then(x => entry);
       }
     });
     // this.addPlugin('html-resource-plugin', {
@@ -138,8 +138,7 @@ export class FuseAureliaLoader extends Loader {
     console.log("loadModule =>", id)
     let module = null
     if(id === 'main' || id === 'app') { // This is not correct, just for overview only
-            module = FuseBox.import('~/' + id)
-      
+      module = FuseBox.import('~/' + id)
     }else if(id.startsWith("aurelia-templating-resources/")) { //This should be handled in a Plugin
       id = id.replace("aurelia-templating-resources", "aurelia-templating-resources/dist/commonjs")
       module = FuseBox.import(id)
