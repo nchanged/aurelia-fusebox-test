@@ -135,6 +135,7 @@ export class FuseAureliaLoader extends Loader {
   */
   loadModule(id) {
     console.log("loadModule =>", id)
+    
     let module = null
     if(id.startsWith("aurelia-templating-resources/")) { //This should be handled in a Plugin
       id = id.replace("aurelia-templating-resources", "aurelia-templating-resources/dist/commonjs")

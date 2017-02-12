@@ -46,7 +46,7 @@ function configure(aurelia) {
     aurelia.use
         .standardConfiguration()
         .developmentLogging();
-    aurelia.start().then(() => aurelia.setRoot());
+    aurelia.start().then(function () { return aurelia.setRoot(); });
 }
 exports.configure = configure;
 
@@ -54,15 +54,20 @@ exports.configure = configure;
 ___scope___.file("fuse-aurelia-loader.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 /*eslint dot-notation:0*/
-const aurelia_metadata_1 = require("aurelia-metadata");
-const aurelia_loader_1 = require("aurelia-loader");
-const text_template_loader_1 = require("./text-template-loader");
-const aurelia_pal_1 = require("aurelia-pal");
+var aurelia_metadata_1 = require("aurelia-metadata");
+var aurelia_loader_1 = require("aurelia-loader");
+var text_template_loader_1 = require("./text-template-loader");
+var aurelia_pal_1 = require("aurelia-pal");
 function ensureOriginOnExports(executed, name) {
-    let target = executed;
-    let key;
-    let exportedValue;
+    var target = executed;
+    var key;
+    var exportedValue;
     if (target.__useDefault) {
         target = target['default'];
     }
@@ -78,27 +83,29 @@ function ensureOriginOnExports(executed, name) {
 /**
 * A default implementation of the Loader abstraction which works with SystemJS, RequireJS and Dojo Loader.
 */
-class FuseAureliaLoader extends aurelia_loader_1.Loader {
+var FuseAureliaLoader = (function (_super) {
+    __extends(FuseAureliaLoader, _super);
     /**
     * Creates an instance of the DefaultLoader.
     */
-    constructor() {
-        super();
+    function FuseAureliaLoader() {
+        var _this = _super.call(this) || this;
         /**
         * The name of the underlying native loader plugin used to load text.
         */
-        this.textPluginName = 'text';
-        this.loaderPlugins = Object.create(null);
-        this.moduleRegistry = Object.create(null);
-        this.useTemplateLoader(new text_template_loader_1.TextTemplateLoader());
-        let that = this;
-        this.addPlugin('template-registry-entry', {
+        _this.textPluginName = 'text';
+        _this.loaderPlugins = Object.create(null);
+        _this.moduleRegistry = Object.create(null);
+        _this.useTemplateLoader(new text_template_loader_1.TextTemplateLoader());
+        var that = _this;
+        _this.addPlugin('template-registry-entry', {
             'fetch': function (address) {
                 console.log('fetch =>', address);
-                let entry = that.getOrCreateTemplateRegistryEntry(address);
-                return entry.templateIsLoaded ? entry : that.templateLoader.loadTemplate(that, entry).then(x => entry);
+                var entry = that.getOrCreateTemplateRegistryEntry(address);
+                return entry.templateIsLoaded ? entry : that.templateLoader.loadTemplate(that, entry).then(function (x) { return entry; });
             }
         });
+        return _this;
         // this.addPlugin('html-resource-plugin', {
         //   'fetch': function(address) {
         //     console.log('fetch =>', address)
@@ -118,65 +125,65 @@ class FuseAureliaLoader extends aurelia_loader_1.Loader {
     * Instructs the loader to use a specific TemplateLoader instance for loading templates
     * @param templateLoader The instance of TemplateLoader to use for loading templates.
     */
-    useTemplateLoader(templateLoader) {
+    FuseAureliaLoader.prototype.useTemplateLoader = function (templateLoader) {
         this.templateLoader = templateLoader;
-    }
+    };
     /**
     * Loads a collection of modules.
     * @param ids The set of module ids to load.
     * @return A Promise for an array of loaded modules.
     */
-    loadAllModules(ids) {
+    FuseAureliaLoader.prototype.loadAllModules = function (ids) {
         //In theory, this is called for resource dependencies
         console.log("loadAllModules =>", ids);
-        let loads = [];
-        for (let i = 0, ii = ids.length; i < ii; ++i) {
-            let item = ids[i];
+        var loads = [];
+        for (var i = 0, ii = ids.length; i < ii; ++i) {
+            var item = ids[i];
             // if(item.endsWith(".html")) {
             //   loads.push(this._import(item));
             // }else{
             loads.push(this.loadModule(item));
         }
         return Promise.all(loads);
-    }
+    };
     /**
     * Loads a template.
     * @param url The url of the template to load.
     * @return A Promise for a TemplateRegistryEntry containing the template.
     */
-    loadTemplate(url) {
+    FuseAureliaLoader.prototype.loadTemplate = function (url) {
         console.log("loadTemplate =>", url);
         return this._import(this.applyPluginToUrl(url, 'template-registry-entry'));
-    }
+    };
     /**
     * Loads a text-based resource.
     * @param url The url of the text file to load.
     * @return A Promise for text content.
     */
-    loadText(url) {
+    FuseAureliaLoader.prototype.loadText = function (url) {
         console.log("loadText =>", url);
-        return Promise.resolve(FuseBox.import("~/" + url)).then(textOrModule => {
+        return Promise.resolve(FuseBox["import"]("~/" + url)).then(function (textOrModule) {
             if (typeof textOrModule === 'string') {
                 return textOrModule;
             }
             return textOrModule['default'];
         });
-    }
+    };
     /**
     * Loads a module.
     * @param id The module id to normalize.
     * @return A Promise for the loaded module.
     */
-    loadModule(id) {
+    FuseAureliaLoader.prototype.loadModule = function (id) {
         console.log("loadModule =>", id);
-        let module = null;
+        var module = null;
         if (id.startsWith("aurelia-templating-resources/")) {
             id = id.replace("aurelia-templating-resources", "aurelia-templating-resources/dist/commonjs");
-            module = FuseBox.import(id);
+            module = FuseBox["import"](id);
         }
         else if (id.startsWith("aurelia-templating-router/")) {
             id = id.replace("aurelia-templating-router", "aurelia-templating-router/dist/commonjs");
-            module = FuseBox.import(id);
+            module = FuseBox["import"](id);
         }
         else if (id.startsWith("html-resource-plugin!")) {
             module = this._import(id);
@@ -185,72 +192,73 @@ class FuseAureliaLoader extends aurelia_loader_1.Loader {
         }
         else {
             if (!FuseBox.packages[id]) {
-                module = FuseBox.import('~/' + id);
+                module = FuseBox["import"]('~/' + id);
             }
             else {
-                module = FuseBox.import(id);
+                module = FuseBox["import"](id);
             }
         }
         module = ensureOriginOnExports(module, id);
         return Promise.resolve(module);
-    }
+    };
     /**
     * Registers a plugin with the loader.
     * @param pluginName The name of the plugin.
     * @param implementation The plugin implementation.
     */
-    addPlugin(pluginName, implementation) {
+    FuseAureliaLoader.prototype.addPlugin = function (pluginName, implementation) {
         console.log("addPlugin =>", pluginName, implementation);
         if (!this.loaderPlugins[pluginName]) {
             this.loaderPlugins[pluginName] = implementation;
         }
-    }
+    };
     /**
     * Normalizes a module id.
     * @param moduleId The module id to normalize.
     * @param relativeTo What the module id should be normalized relative to.
     * @return A promise for the normalized module id.
     */
-    normalize(moduleId, relativeTo) {
+    FuseAureliaLoader.prototype.normalize = function (moduleId, relativeTo) {
         console.log("normalize =>", moduleId, relativeTo);
         return Promise.resolve(moduleId);
-    }
+    };
     /**
     * Maps a module id to a source.
     * @param id The module id.
     * @param source The source to map the module to.
     */
-    map(id, source) {
+    FuseAureliaLoader.prototype.map = function (id, source) {
         console.log("map =>", id, source);
-    }
-    _import(address) {
-        const addressParts = address.split('!');
-        const moduleId = addressParts.splice(addressParts.length - 1, 1)[0];
-        const loaderPlugin = addressParts.length === 1 ? addressParts[0] : null;
+    };
+    FuseAureliaLoader.prototype._import = function (address) {
+        var addressParts = address.split('!');
+        var moduleId = addressParts.splice(addressParts.length - 1, 1)[0];
+        var loaderPlugin = addressParts.length === 1 ? addressParts[0] : null;
         if (loaderPlugin) {
-            const plugin = this.loaderPlugins[loaderPlugin];
+            var plugin = this.loaderPlugins[loaderPlugin];
             if (!plugin) {
-                throw new Error(`Plugin ${loaderPlugin} is not registered in the loader.`);
+                throw new Error("Plugin " + loaderPlugin + " is not registered in the loader.");
             }
             return Promise.resolve(plugin.fetch(moduleId));
         }
         //throw new Error(`Unable to find module with ID: ${moduleId}`);
         return null;
-    }
+    };
     /**
     * Alters a module id so that it includes a plugin loader.
     * @param url The url of the module to load.
     * @param pluginName The plugin to apply to the module id.
     * @return The plugin-based module id.
     */
-    applyPluginToUrl(url, pluginName) {
+    FuseAureliaLoader.prototype.applyPluginToUrl = function (url, pluginName) {
         console.log("applyPluginToUrl =>", url, pluginName);
         // if(pluginName === "html-resource-plugin") {
         //   pluginName = "template-registry-entry"
         // }
-        return `${pluginName}!${url}`;
-    }
-}
+        return pluginName + "!" + url;
+    };
+    return FuseAureliaLoader;
+}(aurelia_loader_1.Loader));
 exports.FuseAureliaLoader = FuseAureliaLoader;
 aurelia_pal_1.PLATFORM.Loader = FuseAureliaLoader;
 
@@ -258,24 +266,27 @@ aurelia_pal_1.PLATFORM.Loader = FuseAureliaLoader;
 ___scope___.file("text-template-loader.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
-const aurelia_pal_1 = require("aurelia-pal");
+var aurelia_pal_1 = require("aurelia-pal");
 /**
 * An implementation of the TemplateLoader interface implemented with text-based loading.
 */
-class TextTemplateLoader {
+var TextTemplateLoader = (function () {
+    function TextTemplateLoader() {
+    }
     /**
     * Loads a template.
     * @param loader The loader that is requesting the template load.
     * @param entry The TemplateRegistryEntry to load and populate with a template.
     * @return A promise which resolves when the TemplateRegistryEntry is loaded with a template.
     */
-    loadTemplate(loader, entry) {
-        return loader.loadText(entry.address).then(text => {
+    TextTemplateLoader.prototype.loadTemplate = function (loader, entry) {
+        return loader.loadText(entry.address).then(function (text) {
             console.log(text);
             entry.template = aurelia_pal_1.DOM.createTemplateFromMarkup(text);
         });
-    }
-}
+    };
+    return TextTemplateLoader;
+}());
 exports.TextTemplateLoader = TextTemplateLoader;
 
 });
@@ -302,8 +313,10 @@ module.exports.default =  "<template>\n  <section class=\"au-animate\">\n    <h2
 ___scope___.file("app.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
-class App {
-    configureRouter(config, router) {
+var App = (function () {
+    function App() {
+    }
+    App.prototype.configureRouter = function (config, router) {
         config.title = 'Aurelia';
         config.map([
             { route: ['', 'welcome'], name: 'welcome', moduleId: 'welcome', nav: true, title: 'Welcome' },
@@ -311,32 +324,41 @@ class App {
             { route: 'child-router', name: 'child-router', moduleId: 'child-router', nav: true, title: 'Child Router' }
         ]);
         this.router = router;
-    }
-}
+    };
+    return App;
+}());
 exports.App = App;
 
 });
 ___scope___.file("blur-image.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+var __decorate = __fsbx_decorate(arguments)
 "use strict";
-const aurelia_framework_1 = require("aurelia-framework");
-let BlurImageCustomAttribute = class BlurImageCustomAttribute {
-    constructor(element) {
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var aurelia_framework_1 = require("aurelia-framework");
+var BlurImageCustomAttribute = (function () {
+    function BlurImageCustomAttribute(element) {
         this.element = element;
         this.element = element;
     }
-    valueChanged(newImage) {
+    BlurImageCustomAttribute.prototype.valueChanged = function (newImage) {
+        var _this = this;
         if (newImage.complete) {
             drawBlur(this.element, newImage);
         }
         else {
-            newImage.onload = () => drawBlur(this.element, newImage);
+            newImage.onload = function () { return drawBlur(_this.element, newImage); };
         }
-    }
-};
+    };
+    return BlurImageCustomAttribute;
+}());
 BlurImageCustomAttribute = __decorate([
-    aurelia_framework_1.autoinject,
-    __metadata("design:paramtypes", [Object])
+    aurelia_framework_1.autoinject
 ], BlurImageCustomAttribute);
 exports.BlurImageCustomAttribute = BlurImageCustomAttribute;
 /* tslint:disable */
@@ -625,86 +647,103 @@ function drawBlur(canvas, image) {
 ___scope___.file("child-router.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
-class ChildRouter {
-    constructor() {
+var ChildRouter = (function () {
+    function ChildRouter() {
         this.heading = 'Child Router';
     }
-    configureRouter(config, router) {
+    ChildRouter.prototype.configureRouter = function (config, router) {
         config.map([
             { route: ['', 'welcome'], name: 'welcome', moduleId: 'welcome', nav: true, title: 'Welcome' },
             { route: 'users', name: 'users', moduleId: 'users', nav: true, title: 'Github Users' },
             { route: 'child-router', name: 'child-router', moduleId: 'child-router', nav: true, title: 'Child Router' }
         ]);
         this.router = router;
-    }
-}
+    };
+    return ChildRouter;
+}());
 exports.ChildRouter = ChildRouter;
 
 });
 ___scope___.file("users.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+var __decorate = __fsbx_decorate(arguments)
 "use strict";
-const aurelia_framework_1 = require("aurelia-framework");
-const aurelia_fetch_client_1 = require("aurelia-fetch-client");
-let Users = class Users {
-    constructor(http) {
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var aurelia_framework_1 = require("aurelia-framework");
+var aurelia_fetch_client_1 = require("aurelia-fetch-client");
+//import fetch
+var Users = (function () {
+    function Users(http) {
         this.http = http;
         this.heading = 'Github Users';
         this.users = [];
-        http.configure(config => {
+        http.configure(function (config) {
             config
                 .useStandardConfiguration()
                 .withBaseUrl('https://api.github.com/');
         });
     }
-    activate() {
+    Users.prototype.activate = function () {
+        var _this = this;
         return this.http.fetch('users')
-            .then(response => response.json())
-            .then(users => this.users = users);
-    }
-};
+            .then(function (response) { return response.json(); })
+            .then(function (users) { return _this.users = users; });
+    };
+    return Users;
+}());
 Users = __decorate([
-    aurelia_framework_1.autoinject,
-    __metadata("design:paramtypes", [typeof (_a = typeof aurelia_fetch_client_1.HttpClient !== "undefined" && aurelia_fetch_client_1.HttpClient) === "function" && _a || Object])
+    aurelia_framework_1.inject(aurelia_fetch_client_1.HttpClient)
 ], Users);
 exports.Users = Users;
-var _a;
 
 });
 ___scope___.file("welcome.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
-class Welcome {
-    constructor() {
+var Welcome = (function () {
+    function Welcome() {
         this.heading = 'Welcome to the Aurelia Navigation App!';
         this.firstName = 'John';
         this.lastName = 'Doe';
         this.previousValue = this.fullName;
     }
-    // Getters can't be directly observed, so they must be dirty checked.
-    // However, if you tell Aurelia the dependencies, it no longer needs to dirty check the property.
-    // To optimize by declaring the properties that this getter is computed from, uncomment the line below
-    // as well as the corresponding import above.
-    // @computedFrom('firstName', 'lastName')
-    get fullName() {
-        return `${this.firstName} ${this.lastName}`;
-    }
-    submit() {
+    Object.defineProperty(Welcome.prototype, "fullName", {
+        // Getters can't be directly observed, so they must be dirty checked.
+        // However, if you tell Aurelia the dependencies, it no longer needs to dirty check the property.
+        // To optimize by declaring the properties that this getter is computed from, uncomment the line below
+        // as well as the corresponding import above.
+        // @computedFrom('firstName', 'lastName')
+        get: function () {
+            return this.firstName + " " + this.lastName;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Welcome.prototype.submit = function () {
         this.previousValue = this.fullName;
-        alert(`Welcome, ${this.fullName}!`);
-    }
-    canDeactivate() {
+        alert("Welcome, " + this.fullName + "!");
+    };
+    Welcome.prototype.canDeactivate = function () {
         if (this.fullName !== this.previousValue) {
             return confirm('Are you sure you want to leave?');
         }
-    }
-}
+    };
+    return Welcome;
+}());
 exports.Welcome = Welcome;
-class UpperValueConverter {
-    toView(value) {
-        return value && value.toUpperCase();
+var UpperValueConverter = (function () {
+    function UpperValueConverter() {
     }
-}
+    UpperValueConverter.prototype.toView = function (value) {
+        return value && value.toUpperCase();
+    };
+    return UpperValueConverter;
+}());
 exports.UpperValueConverter = UpperValueConverter;
 
 });
@@ -22744,6 +22783,42 @@ function addSegment(currentState, segment) {
 }
 });
 return ___scope___.entry = "dist/commonjs/aurelia-route-recognizer.js";
+});
+FuseBox.global("__extends", function(d, b) {
+    for (var p in b)
+        if (b.hasOwnProperty(p)) d[p] = b[p];
+
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+});
+FuseBox.global("__fsbx_decorate", function(localArguments) {
+    return function(decorators, target, key, desc) {
+        var c = arguments.length,
+            r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+            d;
+
+        if (!decorators) {
+            return;
+        }
+        if (decorators && decorators.push) {
+            decorators.push(
+                __metadata("fusebox:exports", localArguments[0]),
+                __metadata("fusebox:require", localArguments[1]),
+                __metadata("fusebox:module", localArguments[2]),
+                __metadata("fusebox:__filename", localArguments[3]),
+                __metadata("fusebox:__dirname", localArguments[4])
+            )
+        }
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else
+            for (var i = decorators.length - 1; i >= 0; i--)
+                if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+});
+
+FuseBox.global("__metadata", function(k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 });
 FuseBox.import("fusebox-hot-reload").connect(4444)
 
