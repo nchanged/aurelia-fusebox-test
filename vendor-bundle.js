@@ -45,7 +45,8 @@ require("aurelia-bootstrapper");
 function configure(aurelia) {
     aurelia.use
         .standardConfiguration()
-        .developmentLogging();
+        .developmentLogging()
+        .plugin("aurelia-v-grid");
     aurelia.start().then(function () { return aurelia.setRoot(); });
 }
 exports.configure = configure;
@@ -135,7 +136,7 @@ var FuseAureliaLoader = (function (_super) {
     */
     FuseAureliaLoader.prototype.loadAllModules = function (ids) {
         //In theory, this is called for resource dependencies
-        console.log("loadAllModules =>", ids);
+        console.log("loadAllModules =>", arguments);
         var loads = [];
         for (var i = 0, ii = ids.length; i < ii; ++i) {
             var item = ids[i];
@@ -152,7 +153,7 @@ var FuseAureliaLoader = (function (_super) {
     * @return A Promise for a TemplateRegistryEntry containing the template.
     */
     FuseAureliaLoader.prototype.loadTemplate = function (url) {
-        console.log("loadTemplate =>", url);
+        console.log("loadTemplate =>", arguments);
         return this._import(this.applyPluginToUrl(url, 'template-registry-entry'));
     };
     /**
@@ -161,7 +162,7 @@ var FuseAureliaLoader = (function (_super) {
     * @return A Promise for text content.
     */
     FuseAureliaLoader.prototype.loadText = function (url) {
-        console.log("loadText =>", url);
+        console.log("loadText =>", arguments);
         return Promise.resolve(FuseBox["import"]("~/" + url)).then(function (textOrModule) {
             if (typeof textOrModule === 'string') {
                 return textOrModule;
@@ -197,6 +198,8 @@ var FuseAureliaLoader = (function (_super) {
                 module = FuseBox["import"]('~/' + id);
             }
             else {
+                if (id === "aurelia-v-grid") {
+                }
                 module = FuseBox["import"](id);
             }
         }
@@ -209,7 +212,7 @@ var FuseAureliaLoader = (function (_super) {
     * @param implementation The plugin implementation.
     */
     FuseAureliaLoader.prototype.addPlugin = function (pluginName, implementation) {
-        console.log("addPlugin =>", pluginName, implementation);
+        console.log("addPlugin =>", arguments);
         if (!this.loaderPlugins[pluginName]) {
             this.loaderPlugins[pluginName] = implementation;
         }
@@ -221,7 +224,7 @@ var FuseAureliaLoader = (function (_super) {
     * @return A promise for the normalized module id.
     */
     FuseAureliaLoader.prototype.normalize = function (moduleId, relativeTo) {
-        console.log("normalize =>", moduleId, relativeTo);
+        console.log("normalize =>", arguments);
         return Promise.resolve(moduleId);
     };
     /**
@@ -230,7 +233,7 @@ var FuseAureliaLoader = (function (_super) {
     * @param source The source to map the module to.
     */
     FuseAureliaLoader.prototype.map = function (id, source) {
-        console.log("map =>", id, source);
+        console.log("map =>", arguments);
     };
     FuseAureliaLoader.prototype._import = function (address) {
         var addressParts = address.split('!');
@@ -253,7 +256,7 @@ var FuseAureliaLoader = (function (_super) {
     * @return The plugin-based module id.
     */
     FuseAureliaLoader.prototype.applyPluginToUrl = function (url, pluginName) {
-        console.log("applyPluginToUrl =>", url, pluginName);
+        console.log("applyPluginToUrl =>", arguments);
         // if(pluginName === "html-resource-plugin") {
         //   pluginName = "template-registry-entry"
         // }
@@ -283,7 +286,7 @@ var TextTemplateLoader = (function () {
     */
     TextTemplateLoader.prototype.loadTemplate = function (loader, entry) {
         return loader.loadText(entry.address).then(function (text) {
-            console.log(text);
+            //console.log(text)
             entry.template = aurelia_pal_1.DOM.createTemplateFromMarkup(text);
         });
     };
@@ -333,8 +336,6 @@ exports.App = App;
 
 });
 ___scope___.file("blur-image.js", function(exports, require, module, __filename, __dirname){ 
-var __decorate = __fsbx_decorate(arguments)
-var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 "use strict";
@@ -669,8 +670,6 @@ exports.ChildRouter = ChildRouter;
 
 });
 ___scope___.file("users.js", function(exports, require, module, __filename, __dirname){ 
-var __decorate = __fsbx_decorate(arguments)
-var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 "use strict";
@@ -22836,3 +22835,4 @@ FuseBox.import("default/main.js");
 FuseBox.main("default/main.js");
 })
 (function(e){var r="undefined"!=typeof window&&window.navigator;r&&(window.global=window),e=r&&"undefined"==typeof __fbx__dnm__?e:module.exports;var n=r?window.__fsbx__=window.__fsbx__||{}:global.$fsbx=global.$fsbx||{};r||(global.require=require);var t=n.p=n.p||{},i=n.e=n.e||{},a=function(e){var r=e.charCodeAt(0);if(r>=97&&r<=122||64===r){if(64===r){var n=e.split("/"),t=n.splice(2,n.length).join("/");return[n[0]+"/"+n[1],t||void 0]}var i=e.indexOf("/");if(i===-1)return[e];var a=e.substring(0,i),o=e.substring(i+1);return[a,o]}},o=function(e){return e.substring(0,e.lastIndexOf("/"))||"./"},f=function(){for(var e=[],r=0;r<arguments.length;r++)e[r]=arguments[r];for(var n=[],t=0,i=arguments.length;t<i;t++)n=n.concat(arguments[t].split("/"));for(var a=[],t=0,i=n.length;t<i;t++){var o=n[t];o&&"."!==o&&(".."===o?a.pop():a.push(o))}return""===n[0]&&a.unshift(""),a.join("/")||(a.length?"/":".")},s=function(e){var r=e.match(/\.(\w{1,})$/);if(r){var n=r[1];return n?e:e+".js"}return e+".js"},u=function(e){if(r){var n,t=document,i=t.getElementsByTagName("head")[0];/\.css$/.test(e)?(n=t.createElement("link"),n.rel="stylesheet",n.type="text/css",n.href=e):(n=t.createElement("script"),n.type="text/javascript",n.src=e,n.async=!0),i.insertBefore(n,i.firstChild)}},l=function(e,n){var i=n.path||"./",o=n.pkg||"default",u=a(e);u&&(i="./",o=u[0],n.v&&n.v[o]&&(o=o+"@"+n.v[o]),e=u[1]),e&&126===e.charCodeAt(0)&&(e=e.slice(2,e.length),i="./");var l=t[o];if(!l){if(r)throw'Package was not found "'+o+'"';return{serverReference:require(o)}}e||(e="./"+l.s.entry);var v,c=f(i,e),d=s(c),p=l.f[d];return!p&&d.indexOf("*")>-1&&(v=d),p||v||(d=f(c,"/","index.js"),p=l.f[d],p||(d=c+".js",p=l.f[d]),p||(p=l.f[c+".jsx"])),{file:p,wildcard:v,pkgName:o,versions:l.v,filePath:c,validPath:d}},v=function(e,n){if(!r)return n(/\.(js|json)$/.test(e)?global.require(e):"");var t;t=new XMLHttpRequest,t.onreadystatechange=function(){if(4==t.readyState)if(200==t.status){var r=t.getResponseHeader("Content-Type"),i=t.responseText;/json/.test(r)?i="module.exports = "+i:/javascript/.test(r)||(i="module.exports = "+JSON.stringify(i));var a=f("./",e);p.dynamic(a,i),n(p.import(e,{}))}else console.error(e+" was not found upon request"),n(void 0)},t.open("GET",e,!0),t.send()},c=function(e,r){var n=i[e];if(n)for(var t in n){var a=n[t].apply(null,r);if(a===!1)return!1}},d=function(e,n){if(void 0===n&&(n={}),58===e.charCodeAt(4)||58===e.charCodeAt(5))return u(e);var i=l(e,n);if(i.serverReference)return i.serverReference;var a=i.file;if(i.wildcard){var f=new RegExp(i.wildcard.replace(/\*/g,"@").replace(/[.?*+^$[\]\\(){}|-]/g,"\\$&").replace(/@/g,"[a-z0-9$_-]+"),"i"),s=t[i.pkgName];if(s){var p={};for(var g in s.f)f.test(g)&&(p[g]=d(i.pkgName+"/"+g));return p}}if(!a){var m="function"==typeof n,h=c("async",[e,n]);if(h===!1)return;return v(e,function(e){if(m)return n(e)})}var _=i.validPath,x=i.pkgName;if(a.locals&&a.locals.module)return a.locals.module.exports;var w=a.locals={},b=o(_);w.exports={},w.module={exports:w.exports},w.require=function(e,r){return d(e,{pkg:x,path:b,v:i.versions})},w.require.main={filename:r?"./":global.require.main.filename,paths:r?[]:global.require.main.paths};var y=[w.module.exports,w.require,w.module,_,b,x];c("before-import",y);var k=a.fn;return k.apply(0,y),c("after-import",y),w.module.exports},p=function(){function n(){}return n.global=function(e,n){var t=r?window:global;return void 0===n?t[e]:void(t[e]=n)},n.import=function(e,r){return d(e,r)},n.on=function(e,r){i[e]=i[e]||[],i[e].push(r)},n.exists=function(e){var r=l(e,{});return void 0!==r.file},n.remove=function(e){var r=l(e,{}),n=t[r.pkgName];n&&n.f[r.validPath]&&delete n.f[r.validPath]},n.main=function(e){return this.mainFile=e,n.import(e,{})},n.expose=function(r){for(var n in r){var t=r[n],i=d(t.pkg);e[t.alias]=i}},n.dynamic=function(r,n,t){var i=t&&t.pkg||"default";this.pkg(i,{},function(t){t.file(r,function(r,t,i,a,o){var f=new Function("__fbx__dnm__","exports","require","module","__filename","__dirname","__root__",n);f(!0,r,t,i,a,o,e)})})},n.flush=function(e){var r=t.default;if(e)return void(r.f[e]&&delete r.f[e].locals);for(var n in r.f){var i=r.f[n];delete i.locals}},n.pkg=function(e,r,n){if(t[e])return n(t[e].s);var i=t[e]={},a=i.f={};i.v=r;var o=i.s={file:function(e,r){a[e]={fn:r}}};return n(o)},n}();return p.packages=t,p.isBrowser=void 0!==r,p.isServer=!r,e.FuseBox=p}(this))
+//# sourceMappingURL=./vendor-bundle.js.map

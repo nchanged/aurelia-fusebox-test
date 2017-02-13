@@ -5,7 +5,7 @@
         "moduleResolution": "node",
         "isolatedModules": false,
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": false,
+        "emitDecoratorMetadata": true,
         "declaration": true,
         "noImplicitAny": true,
         "noImplicitUseStrict": false,

@@ -1,8 +1,9 @@
 
 const fb = require("fuse-box");
-const FuseBox = fb.FuseBox;
+const fuse = fb.FuseBox;
 
-let fuse = FuseBox.init({
+// main bundle/setup
+let MainAppFuse = fuse.init({
     homeDir: "./src",
     outFile: "./vendor-bundle.js",
     tsConfig : "tsconfig.json",
@@ -18,9 +19,22 @@ let fuse = FuseBox.init({
     }
 })
 
+//grid bundle
+let gridFuse = fuse.init({
+        package: "aurelia-v-grid",
+        homeDir: "./node_modules/aurelia-v-grid/dist/commonjs",
+        outFile: "./aurelia-v-grid.js",
+        plugins: [
+        fb.CSSPlugin(),
+        fb.HTMLPlugin({ useDefault: true }),
+    ]
+})
+gridFuse.bundle('> index.js + **/*.html + **/*.js + **/*.css'); // I need remove dependencies here, no need to include evrything here too
 
 
-fuse.devServer(`
+
+// dev server
+MainAppFuse.devServer(`
     > main.ts
     + **/*.html 
     + **/*.ts 

@@ -34,9 +34,8 @@ export class FuseAureliaLoader extends Loader {
   * The name of the underlying native loader plugin used to load text.
   */
   textPluginName = 'text';
-
   loaderPlugins = Object.create(null);
-
+  
   /**
   * Creates an instance of the DefaultLoader.
   */
@@ -86,7 +85,7 @@ export class FuseAureliaLoader extends Loader {
   */
   loadAllModules(ids): Promise {
     //In theory, this is called for resource dependencies
-    console.log("loadAllModules =>", ids)
+    console.log("loadAllModules =>", arguments)
     let loads = [];
 
     for (let i = 0, ii = ids.length; i < ii; ++i) {
@@ -108,7 +107,7 @@ export class FuseAureliaLoader extends Loader {
   * @return A Promise for a TemplateRegistryEntry containing the template.
   */
   loadTemplate(url): Promise {
-    console.log("loadTemplate =>", url)
+    console.log("loadTemplate =>", arguments)
     return this._import(this.applyPluginToUrl(url, 'template-registry-entry'));
   }
 
@@ -118,7 +117,7 @@ export class FuseAureliaLoader extends Loader {
   * @return A Promise for text content.
   */
   loadText(url): Promise {
-    console.log("loadText =>", url)
+    console.log("loadText =>", arguments)
     return Promise.resolve(FuseBox.import("~/" + url)).then(textOrModule => {
        if (typeof textOrModule === 'string') {
          return textOrModule;
@@ -157,6 +156,9 @@ export class FuseAureliaLoader extends Loader {
       if(!FuseBox.packages[id]){
         module = FuseBox.import('~/' + id)
       } else {
+        if(id === "aurelia-v-grid"){
+          //debugger;
+        }
         module = FuseBox.import(id)
       }
     }
@@ -173,7 +175,7 @@ export class FuseAureliaLoader extends Loader {
   * @param implementation The plugin implementation.
   */
   addPlugin(pluginName, implementation) {
-    console.log("addPlugin =>", pluginName, implementation)
+    console.log("addPlugin =>", arguments)
      if(!this.loaderPlugins[pluginName]) {
       this.loaderPlugins[pluginName] = implementation;
      }
@@ -186,7 +188,7 @@ export class FuseAureliaLoader extends Loader {
   * @return A promise for the normalized module id.
   */
   normalize(moduleId, relativeTo) {
-    console.log("normalize =>", moduleId, relativeTo)
+    console.log("normalize =>", arguments)
     return Promise.resolve(moduleId);
   }
 
@@ -196,7 +198,7 @@ export class FuseAureliaLoader extends Loader {
   * @param source The source to map the module to.
   */
   map(id, source) {
-    console.log("map =>", id, source)
+    console.log("map =>", arguments)
   }
 
    _import(address) {
@@ -222,7 +224,7 @@ export class FuseAureliaLoader extends Loader {
   * @return The plugin-based module id.
   */
   applyPluginToUrl(url, pluginName) {
-    console.log("applyPluginToUrl =>", url, pluginName)
+    console.log("applyPluginToUrl =>", arguments)
     // if(pluginName === "html-resource-plugin") {
     //   pluginName = "template-registry-entry"
     // }
