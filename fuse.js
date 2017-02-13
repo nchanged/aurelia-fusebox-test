@@ -3,15 +3,19 @@ const fb = require("fuse-box");
 const FuseBox = fb.FuseBox;
 
 let fuse = FuseBox.init({
-    homeDir: "src/",
-    outFile: "vendor-bundle.js",
+    homeDir: "./src",
+    outFile: "./vendor-bundle.js",
     tsConfig : "tsconfig.json",
     useCache:false,
     plugins: [
         fb.CSSPlugin(),
         fb.HTMLPlugin({ useDefault: true }),
         fb.TypeScriptHelpers()
-    ]
+    ],
+    sourceMap: {
+        bundleReference: "./vendor-bundle.js.map",
+        outFile: "./vendor-bundle.js.map",
+    }
 })
 
 
