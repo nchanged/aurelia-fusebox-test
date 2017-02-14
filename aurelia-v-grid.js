@@ -36,6 +36,7 @@ FuseBox.on("async", function(name) {
 FuseBox.pkg("aurelia-v-grid", {}, function(___scope___){
 ___scope___.file("index.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
@@ -49,6 +50,7 @@ exports.configure = configure;
 });
 ___scope___.file("interfaces.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
@@ -103,6 +105,12 @@ exports.Footer = footer_1.Footer;
 });
 ___scope___.file("grid/htmlCache.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * Holds all the html elements, so we have 1 place to get em all
+ * All classes that creates html adds it to this one, some the parst the class get
+ *
+ */
 var HtmlCache = (function () {
     function HtmlCache(element) {
         this.element = element;
@@ -144,12 +152,20 @@ var HtmlCache = (function () {
             groupRowViewSlot: null
         };
     }
+    /**
+     * just gets the row html elements for easy access later
+     *
+     */
     HtmlCache.prototype.updateRowsMarkup = function () {
         this.avg_left_rows = this.avg_content_left_scroll.getElementsByTagName('avg-row');
         this.avg_main_rows = this.avg_content_main_scroll.getElementsByTagName('avg-row');
         this.avg_right_rows = this.avg_content_right_scroll.getElementsByTagName('avg-row');
         this.avg_group_rows = this.avg_content_group_scroll.getElementsByTagName('avg-row');
     };
+    /**
+     * gets the mark markup parts after its created for easy access later
+     *
+     */
     HtmlCache.prototype.updateMainMarkup = function () {
         this.avg_top_panel = this.element.getElementsByTagName('avg-top-panel')[0];
         this.avg_header = this.element.getElementsByTagName('avg-header')[0];
@@ -179,13 +195,28 @@ exports.HtmlCache = HtmlCache;
 });
 ___scope___.file("grid/controller.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * Class controller is the class the grid connector use to call grid code
+ * It pretty much have function to most GridConnector should not call functions not inside the controller
+ * That will break things fast
+ * TODO: fix some bad parts
+ *
+ */
 var Controller = (function () {
     function Controller(vGrid) {
+        // main context
         this.vGrid = vGrid;
+        // main element
         this.element = vGrid.element;
     }
+    /**
+     * gets the grid conext, so we have access to it in this class
+     *
+     */
     Controller.prototype.getContext = function () {
         var c = this.vGrid;
+        // column configuration
         this.colConfig = c.colConfig;
         this.backupColConfig = c.backupColConfig;
         this.colRepeater = c.colRepeater;
@@ -196,10 +227,12 @@ var Controller = (function () {
         this.customMenuTemplates = c.customMenuTemplates;
         this.loadingScreenTemplate = c.loadingScreenTemplate;
         this.footerTemplate = c.footerTemplate;
+        // aurelia classes
         this.viewCompiler = c.viewCompiler;
         this.container = c.container;
         this.viewResources = c.viewResources;
         this.taskQueue = c.taskQueue;
+        // classes
         this.htmlCache = c.htmlCache;
         this.htmlHeightWidth = c.htmlHeightWidth;
         this.viewSlots = c.viewSlots;
@@ -216,6 +249,7 @@ var Controller = (function () {
         this.loadingScreen = c.loadingScreen;
         this.contextMenu = c.contextMenu;
         this.footer = c.footer;
+        // attributes
         this.bindingContext = c.bindingContext;
         this.overrideContext = c.overrideContext;
         this.attRowHeight = c.attRowHeight;
@@ -230,6 +264,10 @@ var Controller = (function () {
         this.attDataDelay = c.attDataDelay;
         this.attVariableRowHeight = c.attVariableRowHeight;
     };
+    /**
+     * triggers event to call for all translation keys
+     *
+     */
     Controller.prototype.triggerI18N = function () {
         var _this = this;
         var keys = Object.keys({
@@ -268,29 +306,54 @@ var Controller = (function () {
             this.loadingScreen.updateLoadingDefaultLoadingMessage(loading);
         }
     };
+    /**
+     * get the row state from gridconnector, used for variable row height
+     *
+     */
     Controller.prototype.getRowHeightState = function () {
         return this.attGridConnector.getRowHeightState();
     };
+    /**
+     * creates the grid
+     *
+     */
     Controller.prototype.createGrid = function () {
+        // translate ?
         if (this.attI18N) {
             this.triggerI18N();
         }
+        // sets default height and widths of the grid
         this.htmlHeightWidth.addDefaultsAttributes(this.attHeaderHeight, this.attRowHeight, this.attFooterHeight, this.attPanelHeight);
+        // more updates to main markup
         this.htmlHeightWidth.setWidthFromColumnConfig(this.colConfig);
+        // generate main markup and updates our cache
         this.mainMarkup.generateMainMarkup();
         this.htmlCache.updateMainMarkup();
         this.rowDataBinder.init();
+        // starts the scroll events on main html markup (left/main/right)
         this.mainScrollEvents.init();
+        // creates main row markup and attaches them, then we chache this html also
         this.rowMarkup.init(this.attRowHeight);
         this.htmlCache.updateRowsMarkup();
+        // add scroll events (the one that moves the actual rows when scroling)
         this.rowScrollEvents.init(this.attRowHeight, this.attDataDelay, this.attVariableRowHeight);
+        // creates the views/viewports we need
         this.columnMarkup.init(this.colConfig, this.overrideContext, this.colRepeater, this.colRepeatRowTemplate, this.colRepeatRowHeaderTemplate, this.colGroupRow);
+        // register the rowClick handler (when clicking on rows)
         this.rowClickHandler.init(this.attMultiSelect, this.attManualSelection, this);
+        // create grouping elements helper... pretty much just creates view when dragging to group box
         this.groupingElements.init(this, this.colGroupElement);
+        // loading screen view
         this.loadingScreen.init(this.overrideContext, this.loadingScreenTemplate);
+        // footer view
         this.footer.init(this.overrideContext, this.footerTemplate);
+        // add context menu
         this.contextMenu.init(this.customMenuTemplates, this.overrideContext);
     };
+    /**
+     * gets element from datasource
+     *
+     */
     Controller.prototype.getElement = function (rowNumber, isDownScroll, callbackFN) {
         var _this = this;
         this.attGridConnector.getElement({
@@ -304,15 +367,31 @@ var Controller = (function () {
             }
         });
     };
+    /**
+     * expand group/groups
+     *
+     */
     Controller.prototype.expandGroup = function (id) {
         this.attGridConnector.expandGroup(id);
     };
+    /**
+     * collapses group/groups
+     *
+     */
     Controller.prototype.collapseGroup = function (id) {
         this.attGridConnector.collapseGroup(id);
     };
+    /**
+     * select row passed in
+     *
+     */
     Controller.prototype.select = function (row) {
         this.attGridConnector.select(row);
     };
+    /**
+     * adds to grouping
+     *
+     */
     Controller.prototype.addToGrouping = function (groupObj) {
         var currentGrouping = this.attGridConnector.getGrouping();
         var exist = false;
@@ -326,6 +405,10 @@ var Controller = (function () {
             this.attGridConnector.group(currentGrouping, true);
         }
     };
+    /**
+     * removes field from grouping
+     *
+     */
     Controller.prototype.removeFromGrouping = function (field) {
         var currentGrouping = this.attGridConnector.getGrouping();
         var index = -1;
@@ -339,10 +422,18 @@ var Controller = (function () {
             this.attGridConnector.group(currentGrouping, true);
         }
     };
+    /**
+     * returns selection context, so you have the current one used/set in gridconnector/datasource
+     *
+     */
     Controller.prototype.getSelectionContext = function () {
         var sel = this.attGridConnector.getSelection();
         return sel;
     };
+    /**
+     * triggers event on grids element, nice for attributes etc
+     *
+     */
     Controller.prototype.raiseEvent = function (name, data) {
         if (data === void 0) { data = {}; }
         var event = new CustomEvent(name, {
@@ -351,6 +442,10 @@ var Controller = (function () {
         });
         this.element.dispatchEvent(event);
     };
+    /**
+     * sets the loading screen to show or hide
+     *
+     */
     Controller.prototype.setLoadingScreen = function (value, msg, collectionLength) {
         if (value) {
             return this.loadingScreen.enable(msg, collectionLength);
@@ -359,30 +454,47 @@ var Controller = (function () {
             return this.loadingScreen.disable();
         }
     };
+    /**
+     * updates and call classes that needs height updated if its changed
+     *
+     */
     Controller.prototype.updateHeights = function () {
         var totalRowHeight = this.htmlHeightWidth.getNewHeight(this.attGridConnector.getDatasourceLength());
         var bodyHeight = this.htmlCache.avg_content_main.clientHeight;
         if (bodyHeight < totalRowHeight) {
+            // hide it
             this.htmlCache.avg_content_vhandle.style.display = 'block';
         }
         else {
+            // display
             this.htmlCache.avg_content_vhandle.style.display = 'none';
         }
         this.rowScrollEvents.setCollectionLength(this.attGridConnector.getDatasourceLength());
         this.htmlHeightWidth.setCollectionLength(this.attGridConnector.getDatasourceLength(), bodyHeight < totalRowHeight);
     };
+    /**
+     * checks main column with, and hides scrollbar if not needed
+     *
+     */
     Controller.prototype.udateHorizontalScroller = function () {
         var bodyWidth = this.htmlCache.avg_content_main.clientWidth;
         var scrollWidth = this.htmlHeightWidth.avgContentMainScroll_Width;
+        // todo : I also need to adjust scrollheight here, but its a start
         if (bodyWidth < scrollWidth) {
+            // hide it
             this.htmlCache.avg_content_hhandle.style.display = 'block';
             this.htmlHeightWidth.setCollectionLength(this.collectionLength(), true);
         }
         else {
+            // display
             this.htmlCache.avg_content_hhandle.style.display = 'none';
             this.htmlHeightWidth.setCollectionLength(this.collectionLength(), false);
         }
     };
+    /**
+     * checks and updates the grouping in panel, also fixes it if not corrent
+     *
+     */
     Controller.prototype.updateHeaderGrouping = function (groups) {
         var _this = this;
         var length = groups.length;
@@ -401,20 +513,33 @@ var Controller = (function () {
                 }
             });
             if (!check_1) {
+                // check failed
                 var groupings = this.groupingElements.getGroups();
+                // remove groups
                 groupings.forEach(function (group) {
                     _this.groupingElements.removeGroup(group);
                 });
+                // add groups
                 groups.forEach(function (group) {
+                    // really dont know what they want to call it.. lets just use attribute name
+                    // todo, I should have something better here...
                     _this.groupingElements.addGroup(group.title, group.field);
                 });
             }
         }
         this.htmlHeightWidth.adjustWidthsColumns(this.columnBindingContext, length);
     };
+    /**
+     * returns the collection length
+     *
+     */
     Controller.prototype.collectionLength = function () {
         return this.attGridConnector.getDatasourceLength();
     };
+    /**
+     * triggers scroll event with new position, to top if no params
+     *
+     */
     Controller.prototype.triggerScroll = function (position) {
         if (position === null || position === undefined) {
             position = this.htmlCache.avg_content_vhandle.scrollTop;
@@ -431,19 +556,34 @@ var Controller = (function () {
             newTopPosition: position
         });
     };
+    /**
+     * returns to row in current view/scrolltop
+     *
+     */
     Controller.prototype.getTopRow = function () {
         var position = this.htmlCache.avg_content_vhandle.scrollTop;
         return Math.floor(position / this.attRowHeight);
     };
+    /**
+     * rebinds all rows
+     *
+     */
     Controller.prototype.rebindAllRows = function () {
         this.raiseEvent('avg-rebind-all-rows', {
             rowCache: this.htmlCache.rowCache,
             downScroll: true
         });
     };
+    /**
+     * returns the column config, and can be used to save current user settings
+     *
+     */
     Controller.prototype.getColumnConfig = function () {
+        // get current colcontext
         var colContext = this.columnBindingContext;
+        // temp array to hold data
         var tempArray = [];
+        // loop and find out whats what..
         for (var i = 0; i < this.colConfig.length; i++) {
             switch (true) {
                 case colContext.setupleft[i].show:
@@ -479,7 +619,9 @@ var Controller = (function () {
                 default:
             }
         }
+        // temp colconf to return
         var newColConfig = [];
+        // loop and set correct params
         this.colConfig.forEach(function (col, i) {
             var temp = {
                 colWidth: tempArray[i].width,
@@ -498,15 +640,21 @@ var Controller = (function () {
                 colFilterTop: col.colFilterTop,
                 colCss: col.colCss,
                 colType: col.colType,
-                __colSortHelper: tempArray[i].left,
+                __colSortHelper: tempArray[i].left
             };
             newColConfig.push(temp);
         });
+        // sort array
         newColConfig.sort(function (a, b) {
             return a.__colSortHelper - b.__colSortHelper;
         });
+        // return current config   
         return newColConfig;
     };
+    /**
+     * sets the new column config and updates the grid
+     *
+     */
     Controller.prototype.setColumnConfig = function (colConfig) {
         var length = this.columnBindingContext.setupgrouping;
         this.viewSlots.unbindAndDetachColumns();
@@ -528,8 +676,14 @@ exports.Controller = Controller;
 });
 ___scope___.file("grid/mainMarkup.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var aurelia_framework_1 = require("aurelia-framework");
 var mainMarkupHtmlString_1 = require("./mainMarkupHtmlString");
+/**
+ * Loads the main markup and creates a viewport and binds it to our HtmlHeightWidth class
+ * Viewport is added to the viewPorts class
+ *
+ */
 var MainMarkup = (function () {
     function MainMarkup(element, viewCompiler, container, viewResources, htmlHeightWidth, viewSlots) {
         this.element = element;
@@ -539,6 +693,10 @@ var MainMarkup = (function () {
         this.htmlHeightWidth = htmlHeightWidth;
         this.viewSlots = viewSlots;
     }
+    /**
+     * Generates the main markup/skeleton of the grid
+     *
+     */
     MainMarkup.prototype.generateMainMarkup = function () {
         this.viewFactory = this.viewCompiler.compile('<template>' + mainMarkupHtmlString_1.MainMarkupHtmlString + '</template>', this.viewResources);
         this.view = this.viewFactory.create(this.container);
@@ -557,11 +715,26 @@ exports.MainMarkup = MainMarkup;
 });
 ___scope___.file("grid/mainMarkupHtmlString.js", function(exports, require, module, __filename, __dirname){ 
 
+// tslint:disable:max-line-length
+// disabled, since it really wont be easier to read if I change it
+"use strict";
+/**
+ * This holds all the main markup for the grid except the columns and rows
+ * In the $au the "au" is removed when we get it
+ */
 exports.MainMarkupHtmlString = "\n        <avg-top-panel v-drag-drop-col class=\"avg-top-panel\" css=\"height:$au{avgPanel_Height}px\">\n\n        </avg-top-panel>\n\n        <avg-header class=\"avg-header\" css=\"height:$au{avgHeader_Height}px;top:$au{avgHeader_Top}px\">\n\n          <avg-header-left class=\"avg-header-left\" css=\"width:$au{avgHeaderLeft_Width}px\">\n           </avg-header-left>  \n\n           <avg-header-main class=\"avg-header-main\" css=\"left:$au{avgHeaderMain_Left}px;right:$au{avgHeaderMain_Right}px\">\n             <avg-header-main-scroll css=\"width:$au{avgHeaderMainScroll_Width}px;height:$au{avgHeaderMainScroll_Height}px\"> \n             </avg-header-main-scroll> \n           </avg-header-main> \n\n           <avg-header-right class=\"avg-header-right\" css=\"right:$au{avgHeaderRight_Right}px;width:$au{avgHeaderRight_Width}px\">\n           </avg-header-right> \n\n        </avg-header>\n\n        <avg-content class=\"avg-content\" css=\"top:$au{avgContent_Top}px;bottom:$au{avgContent_Bottom}px\">\n           \n            <avg-content-left  class=\"avg-content-left\" css=\"width:$au{avgContentLeft_Width}px\">\n              <avg-content-left-scroll css=\"width:$au{avgContentLeftScroll_Width};height:$au{avgContentLeftScroll_Height}px\">  \n              </avg-content-left-scroll> \n            </avg-content-left>  \n\n            <avg-content-main  class=\"avg-content-main\" css=\"left:$au{avgContentMain_Left}px;right:$au{avgContentMain_Right}px\">\n              <avg-content-main-scroll css=\"min-width: 100%;width:$au{avgContentMainScroll_Width}px;height:$au{avgContentMainScroll_Height}px\"> \n              </avg-content-main-scroll> \n            </avg-content-main> \n\n            <avg-content-right  class=\"avg-content-right\" css=\"right:$au{avgContentRight_Right}px;width:$au{avgContentRight_Width}px\">\n              <avg-content-right-scroll css=\"width:$au{avgContentRightScroll_Width};height:$au{avgContentRightScroll_Height}px\">  \n              </avg-content-right-scroll> \n            </avg-content-right>  \n            \n        </avg-content>\n\n       <avg-footer class=\"avg-footer\" css=\"height:$au{avgFooter_Height}px\">\n       </avg-footer> \n\n       <avg-content-group css=\"left:0;right:0;top:$au{avgContentGroup_Top}px;bottom:$au{avgContentGroup_Bottom}px\">\n          <avg-content-group-scroll css=\"left:0;right:0;height:$au{avgContentGroup_Height}px\">  \n          </avg-content-group-scroll> \n        </avg-content-group> \n\n        <avg-content-vhandle css=\"right:0;bottom:$au{avgContentVhandle_Bottom}px;right:$au{avgContentVhandle_Right}px;left:$au{avgContentVhandle_Left}px;top:$au{avgContentVhandle_Top}px\">\n          <avg-content-vhandle-scroll css=\"width:5px;height:$au{avgContentVhandleScroll_Height}px\"> \n          </avg-content-vhandle-scroll> \n        </avg-content-vhandle> \n\n        <avg-content-hhandle css=\"bottom:$au{avgContentHhandle_Bottom}px;right:$au{avgContentHhandle_Right}px;left:$au{avgContentHhandle_Left}px;height:$au{avgContentHhandle_Height}px\">\n          <avg-content-hhandle-scroll css=\"height:7px;width:$au{avgContentHhandleScroll_Width}px\"> \n          </avg-content-hhandle-scroll> \n        </avg-content-hhandle> \n\n        ".replace(/\$(au{)/g, '${');
 
 });
 ___scope___.file("grid/mainScrollEvents.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * This takes care of the scrolling part
+ * It listen for mouse wheel, touch scroll and the extra scrollbars we attach to the grid
+ * Is also makes sure the left/right and main is same scrollTop, so we dont get that laggy effect on slow browsers
+ * It triggers event to update/bind data after its done
+ *
+ */
 var MainScrollEvents = (function () {
     function MainScrollEvents(element, htmlCache) {
         this.element = element;
@@ -575,16 +748,25 @@ var MainScrollEvents = (function () {
         this.isScrollbar = false;
         this.lastTopPosition = 0;
         this.wheelEvent = 'onwheel';
+        // check if IE, need to act on another mousewheel event if so
         this.isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
         if (this.isIE11) {
             this.wheelEvent = 'onmousewheel';
             console.warn('IE11, why!?!?!');
         }
     }
+    /**
+     * Called when grid is created to set defaults, add event listners
+     *
+     */
     MainScrollEvents.prototype.init = function () {
         this.updateInternalHtmlCache();
         this.addScrollEvents('all');
     };
+    /**
+     * just adds the html elements to class
+     *
+     */
     MainScrollEvents.prototype.updateInternalHtmlCache = function () {
         this.left = this.htmlCache.avg_content_left;
         this.main = this.htmlCache.avg_content_main;
@@ -594,6 +776,10 @@ var MainScrollEvents = (function () {
         this.hhandle = this.htmlCache.avg_content_hhandle;
         this.group = this.htmlCache.avg_content_group;
     };
+    /**
+     * called by mouse wheel event listener
+     *
+     */
     MainScrollEvents.prototype.onWeel = function (event) {
         var _this = this;
         if (this.vhandle.scrollHeight === this.vhandle.parentNode.clientHeight) {
@@ -617,6 +803,11 @@ var MainScrollEvents = (function () {
         event.preventDefault();
         return false;
     };
+    /**
+     * Adds scroll events touch, mousewheel and scrolling on vertical scrollbar and horisontal scrollbar
+     * we dont use automatic scrollstate browsers can have a overflow y wtc, since it will look horrible on slow browsers
+     *
+     */
     MainScrollEvents.prototype.addScrollEvents = function (type) {
         switch (type) {
             case 'all':
@@ -635,6 +826,11 @@ var MainScrollEvents = (function () {
             default:
         }
     };
+    /**
+     * removed the scroll event
+     * was more before, main reason this was here, but didnt work well on old browsers
+     *
+     */
     MainScrollEvents.prototype.removeScrollEvents = function (type) {
         switch (type) {
             case 'all':
@@ -646,11 +842,19 @@ var MainScrollEvents = (function () {
             default:
         }
     };
+    /**
+     * called by touchStart event listener
+     *
+     */
     MainScrollEvents.prototype.touchStart = function (e) {
         var touchobj = e.changedTouches[0];
         this.touchY = parseInt(touchobj.clientY, 10);
         this.touchX = parseInt(touchobj.clientX, 10);
     };
+    /**
+     * called by touchMove event listener
+     *
+     */
     MainScrollEvents.prototype.touchMove = function (e) {
         var touchobj = e.changedTouches[0];
         var dist = this.touchY - parseInt(touchobj.clientY, 10);
@@ -660,6 +864,10 @@ var MainScrollEvents = (function () {
         this.handleEventWheelScroll(dist, -distX);
         e.preventDefault();
     };
+    /**
+     * called by scrollwheel event listener function, the does the actual updating of scrolltop
+     *
+     */
     MainScrollEvents.prototype.handleEventWheelScroll = function (newTopPosition, left) {
         var _this = this;
         requestAnimationFrame(function () {
@@ -686,6 +894,10 @@ var MainScrollEvents = (function () {
             });
         });
     };
+    /**
+     * called when vertical scrollabrs is dragged
+     *
+     */
     MainScrollEvents.prototype.handleEventVhandle = function () {
         var _this = this;
         requestAnimationFrame(function () {
@@ -693,6 +905,7 @@ var MainScrollEvents = (function () {
                 clearTimeout(_this.timerVhandle);
                 _this.removeScrollEvents('Vhandle');
             }
+            // needed this else chrome had weird effect when dragging fast past bottom of a scrollbars
             requestAnimationFrame(function () {
                 var newTopPosition = _this.vhandle.scrollTop;
                 _this.right.scrollTop = newTopPosition;
@@ -708,6 +921,10 @@ var MainScrollEvents = (function () {
             });
         });
     };
+    /**
+     * called when horisontal scrollabrs is dragged
+     *
+     */
     MainScrollEvents.prototype.handleEventHhandle = function () {
         var _this = this;
         requestAnimationFrame(function () {
@@ -719,6 +936,7 @@ var MainScrollEvents = (function () {
                 var newLeftPosition = _this.hhandle.scrollLeft;
                 _this.main.scrollLeft = newLeftPosition;
                 _this.mainHead.style.left = -newLeftPosition + 'px';
+                // this.checkScroll(newTopPosition);
                 _this.timerHhandle = setTimeout(function () {
                     _this.addScrollEvents('Hhandle');
                     _this.timerHhandle = null;
@@ -726,16 +944,27 @@ var MainScrollEvents = (function () {
             });
         });
     };
+    /**
+     * check the scrolling and triggers updating of row top values
+     *
+     */
     MainScrollEvents.prototype.checkScroll = function (newTopPosition) {
         if (this.lastTopPosition !== newTopPosition) {
+            // check is up or down
             var isDown = true;
             if (this.lastTopPosition > newTopPosition) {
                 isDown = false;
             }
+            // set last position
             this.lastTopPosition = newTopPosition;
+            // trigger scroll
             this.triggerGridScrollEvent(this.isScrollbar, isDown, newTopPosition);
         }
     };
+    /**
+     * trigger event called after checking type of scroll
+     *
+     */
     MainScrollEvents.prototype.triggerGridScrollEvent = function (scrollbarScrolling, down, topPosition) {
         var event = new CustomEvent('avg-scroll', {
             detail: {
@@ -754,16 +983,33 @@ exports.MainScrollEvents = MainScrollEvents;
 });
 ___scope___.file("grid/rowMarkup.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * This creates the markup for the rows for:
+ * - pinned left and right
+ * - main
+ * - group
+ *
+ */
 var RowMarkup = (function () {
     function RowMarkup(element, htmlCache) {
         this.element = element;
         this.htmlCache = htmlCache;
     }
+    /**
+     * Called when grid is created to set defaults, add event listners
+     *
+     */
     RowMarkup.prototype.init = function (rowHeight) {
         this.rowHeight = rowHeight;
         this.updateInternalHtmlCache();
         this.generateRows();
     };
+    /**
+     * Generate the row markup
+     * called when grid is created and not used again
+     *
+     */
     RowMarkup.prototype.generateRows = function () {
         var markupLeft = '';
         var markupMain = '';
@@ -783,6 +1029,10 @@ var RowMarkup = (function () {
         this.right.innerHTML = markupLeft;
         this.group.innerHTML = markupGroup;
     };
+    /**
+     * just adds the main html elements to class
+     *
+     */
     RowMarkup.prototype.updateInternalHtmlCache = function () {
         this.left = this.htmlCache.avg_content_left_scroll;
         this.main = this.htmlCache.avg_content_main_scroll;
@@ -796,6 +1046,15 @@ exports.RowMarkup = RowMarkup;
 });
 ___scope___.file("grid/rowScrollEvents.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * This takes care of the row scrolling
+ * It sets the correct top values to all columns and groups
+ * Columns are pinned left and right, main
+ * It does not listen for scroll event on main elements, just internal event "avg-scroll"
+ * After it sets correct top value, it triggers event to rebind row/ update data
+ *
+ */
 var RowScrollEvents = (function () {
     function RowScrollEvents(element, htmlCache, controller) {
         this.htmlCache = htmlCache;
@@ -806,6 +1065,10 @@ var RowScrollEvents = (function () {
         this.collectionLength = 0;
         this.largeScrollUpdateDelay = 0;
     }
+    /**
+     * Called when grid is created to set defaults, add event listners
+     *
+     */
     RowScrollEvents.prototype.init = function (rowHeight, attDataDelay, attVariableRowHeight) {
         this.rowCache = this.htmlCache.rowCache;
         this.largeScrollUpdateDelay = attDataDelay;
@@ -813,14 +1076,23 @@ var RowScrollEvents = (function () {
         this.updateInternalHtmlCache();
         this.createRowCache();
         if (attVariableRowHeight) {
+            // @override what scroll functions to use
             this.scrollNormal = this.scrollNormalVariableRowHeight.bind(this);
             this.scrollScrollBar = this.scrollScrollBarVariableRowHeight.bind(this);
         }
         this.addEventListener();
     };
+    /**
+     * Gets called when selection changes, this way it knows the limit of scrolling
+     *
+     */
     RowScrollEvents.prototype.setCollectionLength = function (length) {
         this.collectionLength = length;
     };
+    /**
+     * Creates a rowcache so its easy to get the bindingcontexts of all columns
+     *
+     */
     RowScrollEvents.prototype.createRowCache = function () {
         for (var i = 0; i < this.cacheLength; i++) {
             this.rowCache.push({
@@ -833,6 +1105,10 @@ var RowScrollEvents = (function () {
             });
         }
     };
+    /**
+     * Updates internal html cache so its easy to access
+     *
+     */
     RowScrollEvents.prototype.updateInternalHtmlCache = function () {
         this.left = this.htmlCache.avg_content_left_scroll;
         this.main = this.htmlCache.avg_content_main_scroll;
@@ -845,12 +1121,20 @@ var RowScrollEvents = (function () {
         this.cacheLength = this.leftRows.length;
     };
     Object.defineProperty(RowScrollEvents.prototype, "contentHeight", {
+        /**
+         * returns the context height of main column (middle one)
+         *
+         */
         get: function () {
             return this.htmlCache.avg_content_main.offsetHeight;
         },
         enumerable: true,
         configurable: true
     });
+    /**
+     * Figues out what type of scrolling is done and calls correct method
+     *
+     */
     RowScrollEvents.prototype.onScroll = function (event) {
         var _this = this;
         var isDown = event.detail.isDown;
@@ -881,6 +1165,10 @@ var RowScrollEvents = (function () {
             }
         }
     };
+    /**
+     * Sets new top calues to all needed columns (left, main, right, group)
+     *
+     */
     RowScrollEvents.prototype.setRowTopValue = function (cache, top) {
         cache.left.style.transform = "translate3d(0px," + top + "px, 0px)";
         cache.main.style.transform = "translate3d(0px," + top + "px, 0px)";
@@ -889,6 +1177,11 @@ var RowScrollEvents = (function () {
         cache.top = top;
         cache.row = Math.floor(top / this.rowHeight);
     };
+    /**
+     * Sets new top calues to all needed columns (left, main, right, group)
+     * This one is used for the vaiable row height
+     *
+     */
     RowScrollEvents.prototype.setRowTopValueVariableRowHeight = function (cache, top) {
         cache.left.style.transform = "translate3d(0px," + top + "px, 0px)";
         cache.main.style.transform = "translate3d(0px," + top + "px, 0px)";
@@ -898,27 +1191,31 @@ var RowScrollEvents = (function () {
         var rowHeightState = this.controller.getRowHeightState();
         cache.row = rowHeightState.top.indexOf(top);
     };
+    /**
+     * Handles normal scrolling
+     *
+     */
     RowScrollEvents.prototype.scrollNormal = function (newTopPosition, downScroll) {
         var rowHeight = this.rowHeight;
         var currentRow = Math.floor(newTopPosition / rowHeight);
         var cacheHeight = rowHeight * this.cacheLength;
         for (var i = 0; i < this.cacheLength; i++) {
             var cache = this.rowCache[i];
-            var top_1 = this.rowCache[i].top;
+            var top = this.rowCache[i].top;
             var update = false;
             var newTop = void 0;
             if (!downScroll) {
-                if (top_1 > (newTopPosition + this.contentHeight)) {
+                if (top > (newTopPosition + this.contentHeight)) {
                     update = true;
-                    newTop = top_1 - cacheHeight;
-                    currentRow = (top_1 - cacheHeight) / rowHeight;
+                    newTop = top - cacheHeight;
+                    currentRow = (top - cacheHeight) / rowHeight;
                 }
             }
             else {
-                if (top_1 < (newTopPosition - rowHeight)) {
+                if (top < (newTopPosition - rowHeight)) {
                     update = true;
-                    newTop = top_1 + cacheHeight;
-                    currentRow = (top_1 + cacheHeight) / rowHeight;
+                    newTop = top + cacheHeight;
+                    currentRow = (top + cacheHeight) / rowHeight;
                 }
             }
             if (update === true && currentRow >= 0 && currentRow <= this.collectionLength - 1) {
@@ -926,15 +1223,21 @@ var RowScrollEvents = (function () {
                 this.triggerRebindRowEvent(currentRow, cache, downScroll);
             }
         }
+        // sort array
         this.rowCache.sort(function (a, b) {
             return a.row - b.row;
         });
     };
+    /**
+     * Handles scrollbars scrolling, or when setting top value by code
+     *
+     */
     RowScrollEvents.prototype.scrollScrollBar = function (newTopPosition, downScroll) {
         var _this = this;
         if (this.collectionLength <= this.cacheLength) {
             newTopPosition = 0;
         }
+        // vars
         var rowHeight = this.rowHeight;
         var bodyHeight = this.contentHeight;
         var currentRow = Math.floor(newTopPosition / rowHeight);
@@ -942,20 +1245,24 @@ var RowScrollEvents = (function () {
         var currentRowTop = rowHeight * currentRow;
         var firstRowTop = rowHeight * firstRow;
         var collectionLength = this.collectionLength;
+        // for setting after
         var setAfter = function (no) {
             var row = _this.rowCache[no];
             _this.setRowTopValue(row, currentRowTop);
             currentRowTop = currentRowTop + rowHeight;
         };
+        // for setting before (when hitting bottom)
         var setBefore = function (no) {
             var row = _this.rowCache[no];
             firstRowTop = firstRowTop - rowHeight;
             _this.setRowTopValue(row, firstRowTop);
         };
+        // for setting before (when hitting bottom)
         var setHiddenFromView = function (no) {
             var row = _this.rowCache[no];
             _this.setRowTopValue(row, -(currentRowTop + (rowHeight * 50)));
         };
+        // loop row html cache
         for (var i = 0; i < this.cacheLength; i++) {
             var moved = false;
             switch (true) {
@@ -974,18 +1281,26 @@ var RowScrollEvents = (function () {
                     setHiddenFromView(i);
                 }
                 else {
+                    // if this triggers the collection have been removed, so really just need to place out the rows
                     if (currentRow >= collectionLength) {
+                        //setAfter(i);
                         setHiddenFromView(i);
                     }
                 }
             }
             currentRow++;
         }
+        // I now sort the array again.
         this.rowCache.sort(function (a, b) {
             return a.row - b.row;
         });
+        // update row data
         this.triggerRebindAllRowsEvent(downScroll, this.rowCache);
     };
+    /**
+     * sets row height (used when using variable row height)
+     *
+     */
     RowScrollEvents.prototype.setRowHeight = function (rowElement, rowNo) {
         var rowHeightState = this.controller.getRowHeightState();
         rowElement.left.style.height = rowHeightState.rows[rowNo] + 'px';
@@ -993,17 +1308,22 @@ var RowScrollEvents = (function () {
         rowElement.right.style.height = rowHeightState.rows[rowNo] + 'px';
         rowElement.group.style.height = rowHeightState.rows[rowNo] + 'px';
     };
+    /**
+     * Handles normal scrolling (used when using variable row height)
+     * if varibale row state is set the override the "scrollNormal" method
+     *
+     */
     RowScrollEvents.prototype.scrollNormalVariableRowHeight = function (newTopPosition, downScroll) {
         var rowHeightState = this.controller.getRowHeightState();
         for (var i = 0; i < this.cacheLength; i++) {
             var cache = this.rowCache[i];
-            var top_2 = this.rowCache[i].top;
-            var currentRow = rowHeightState.top.indexOf(top_2);
+            var top = this.rowCache[i].top;
+            var currentRow = rowHeightState.top.indexOf(top);
             this.setRowHeight(this.rowCache[i], currentRow);
             var update = false;
             var newTop = void 0;
             if (!downScroll) {
-                if (top_2 > (newTopPosition + this.contentHeight)) {
+                if (top > (newTopPosition + this.contentHeight)) {
                     currentRow = currentRow - this.cacheLength;
                     if (currentRow > -1) {
                         update = true;
@@ -1012,7 +1332,7 @@ var RowScrollEvents = (function () {
                 }
             }
             else {
-                if (top_2 < (newTopPosition - rowHeightState.rows[currentRow])) {
+                if (top < (newTopPosition - rowHeightState.rows[currentRow])) {
                     update = true;
                     newTop = rowHeightState.top[currentRow + this.cacheLength];
                     currentRow = currentRow + this.cacheLength;
@@ -1023,10 +1343,16 @@ var RowScrollEvents = (function () {
                 this.triggerRebindRowEvent(currentRow, cache, downScroll);
             }
         }
+        // sort array
         this.rowCache.sort(function (a, b) {
             return a.row - b.row;
         });
     };
+    /**
+     * Handles scrollbars scrolling, or when setting top value by code (used when using variable row height)
+     * if varibale row state is set the override the "scrollScrollBar" method
+     *
+     */
     RowScrollEvents.prototype.scrollScrollBarVariableRowHeight = function (newTopPosition, downScroll) {
         var _this = this;
         if (this.collectionLength <= this.cacheLength) {
@@ -1040,6 +1366,7 @@ var RowScrollEvents = (function () {
         var i = 0;
         var run = true;
         if (newTopPosition !== 0) {
+            // need to do some looping here, need to figure out where we are..
             while (i < rowHeightState.top.length) {
                 var checkValue = Math.abs(newTopPosition - (rowHeightState.top[i]));
                 if (checkValue === x) {
@@ -1057,10 +1384,12 @@ var RowScrollEvents = (function () {
                 i++;
             }
         }
+        // vars
         var bodyHeight = this.contentHeight;
         currentRowTop = rowHeightState.top[currentRow];
         var firstRowTop = currentRowTop * 1;
         var collectionLength = this.collectionLength;
+        // for setting after
         var setAfter = function (no) {
             var row = _this.rowCache[no];
             _this.setRowHeight(row, currentRow);
@@ -1068,16 +1397,19 @@ var RowScrollEvents = (function () {
             row.row = currentRow;
             currentRowTop = currentRowTop + rowHeightState.rows[currentRow];
         };
+        // for setting before (when hitting bottom)
         var setBefore = function (no) {
             var row = _this.rowCache[no];
             _this.setRowHeight(row, currentRow);
             firstRowTop = firstRowTop - rowHeightState.rows[currentRow];
             _this.setRowTopValueVariableRowHeight(row, firstRowTop);
         };
+        // for setting before (when hitting bottom)
         var setHiddenFromView = function (no) {
             var row = _this.rowCache[no];
             _this.setRowTopValueVariableRowHeight(row, -(currentRowTop + (rowHeightState.rows[currentRow] * 50)));
         };
+        // loop row html cache
         for (var i_1 = 0; i_1 < this.cacheLength; i_1++) {
             var moved = false;
             switch (true) {
@@ -1096,6 +1428,7 @@ var RowScrollEvents = (function () {
                     setHiddenFromView(i_1);
                 }
                 else {
+                    // if this triggers the collection have been removed, so really just need to place out the rows
                     if (currentRow >= collectionLength) {
                         setHiddenFromView(i_1);
                     }
@@ -1103,15 +1436,26 @@ var RowScrollEvents = (function () {
             }
             currentRow++;
         }
+        // I now sort the array again.
         this.rowCache.sort(function (a, b) {
             return a.row - b.row;
         });
+        // update row data
         this.triggerRebindAllRowsEvent(downScroll, this.rowCache);
     };
+    /**
+     * Adds event listener from "avg-scroll"
+     * This is usually called by the mainScrollEvents class
+     *
+     */
     RowScrollEvents.prototype.addEventListener = function () {
         this.onScrollBinded = this.onScroll.bind(this);
         this.element.addEventListener('avg-scroll', this.onScrollBinded);
     };
+    /**
+     * Triggers event to rebind row
+     *
+     */
     RowScrollEvents.prototype.triggerRebindRowEvent = function (curRow, curRowCache, isDownScroll) {
         var event = new CustomEvent('avg-rebind-row', {
             detail: {
@@ -1123,6 +1467,10 @@ var RowScrollEvents = (function () {
         });
         this.element.dispatchEvent(event);
     };
+    /**
+     * Triggers event to rebind all rows
+     *
+     */
     RowScrollEvents.prototype.triggerRebindAllRowsEvent = function (isDownScroll, curRowCache) {
         var event = new CustomEvent('avg-rebind-all-rows', {
             detail: {
@@ -1140,8 +1488,13 @@ exports.RowScrollEvents = RowScrollEvents;
 });
 ___scope___.file("grid/columnMarkup.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var aurelia_framework_1 = require("aurelia-framework");
 var columnMarkupHelper_1 = require("./columnMarkupHelper");
+/**
+ *  Creates all the columns markup/viewports when grid is created
+ *
+ */
 var ColumnMarkup = (function () {
     function ColumnMarkup(element, viewCompiler, container, viewResources, htmlCache, viewSlots, columnBindingContext) {
         this.element = element;
@@ -1153,6 +1506,10 @@ var ColumnMarkup = (function () {
         this.container = container;
         this.viewResources = viewResources;
     }
+    /**
+     *  sets needed context/data and generates the columns needed
+     *
+     */
     ColumnMarkup.prototype.init = function (colConfig, overrideContext, colRepeater, colRepeatRowTemplate, colRepeatRowHeaderTemplate, colGroup) {
         this.overrideContext = overrideContext;
         this.colConfig = colConfig;
@@ -1167,10 +1524,16 @@ var ColumnMarkup = (function () {
         }
         this.generateColumns();
     };
+    /**
+     *  returns the row view using the viewCompiler and markup needed
+     *
+     */
     ColumnMarkup.prototype.getRowViews = function (type) {
         var viewMarkup = '';
         var markupArray = [];
+        // group column
         if (type === 'group') {
+            // default markup
             var defaultMarkup = [
                 '<i click.delegate="changeGrouping(rowRef)">',
                 '<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">',
@@ -1179,7 +1542,9 @@ var ColumnMarkup = (function () {
                 '</svg>',
                 '</i>&nbsp;${rowRef.__groupName} (${rowRef.__groupTotal})',
             ];
+            // if user supplied markup we use that, else default 
             var gTemplate = this.colGroup || defaultMarkup.join('');
+            // all markup 
             markupArray = [
                 '<avg-col ',
                 'class="avg-col-group"',
@@ -1219,6 +1584,7 @@ var ColumnMarkup = (function () {
                 }
             }
         }
+        // this is the block that puches the column from left for grouping
         var groupingBlock = '';
         if (type === 'left') {
             groupingBlock = '<avg-col \
@@ -1227,6 +1593,11 @@ var ColumnMarkup = (function () {
         }
         return this.viewCompiler.compile("<template>" + (groupingBlock + viewMarkup) + "</template>", this.viewResources);
     };
+    /**
+     *  create coluumn context that will be used to control the width & left style of them
+     *  It will also control if they are visible or hidden
+     *
+     */
     ColumnMarkup.prototype.createColSetupContext = function (type) {
         var leftCur = 0;
         for (var i = 0; i < this.configLength; i++) {
@@ -1254,9 +1625,14 @@ var ColumnMarkup = (function () {
             }
         }
     };
+    /**
+     *  returns the header view using the viewCompiler and markup needed
+     *
+     */
     ColumnMarkup.prototype.getHeaderViews = function (type) {
         var viewMarkup = '';
         if (this.colRepeater && type === 'main' && this.colRepeatHeaderTemplate) {
+            // if repeater and main, we add to the 
             var style = 'css="left:0;right:0"';
             viewMarkup = "<div class=\"avg-col\" " + style + ">" + this.colRepeatHeaderTemplate + "</div>";
         }
@@ -1283,6 +1659,7 @@ var ColumnMarkup = (function () {
                 viewMarkup = viewMarkup + colMarkup;
             }
         }
+        // this is the block that puches the column from left for grouping
         var groupingBlock = '';
         if (type === 'left') {
             groupingBlock = '<avg-col \
@@ -1292,8 +1669,13 @@ var ColumnMarkup = (function () {
         }
         return this.viewCompiler.compile("<template>" + (groupingBlock + viewMarkup) + "</template>", this.viewResources);
     };
+    /**
+     *  starts to generate the needed columns
+     *
+     */
     ColumnMarkup.prototype.generateColumns = function () {
         if (this.columnBindingContext.setupmain.length === 0) {
+            // grid hidden by if.bind...lets keep what ever is in here
             this.createColSetupContext('left');
             this.createColSetupContext('main');
             this.createColSetupContext('right');
@@ -1320,12 +1702,20 @@ var ColumnMarkup = (function () {
         this.viewSlots.mainHeaderViewSlot = this.createViewSlot(this.mainHeader, viewFactoryHeaderMain);
         this.viewSlots.rightHeaderViewSlot = this.createViewSlot(this.rightHeader, viewFactoryHeaderRight);
     };
+    /**
+     *  creates a viewslot and adds the view using the viewFactory
+     *
+     */
     ColumnMarkup.prototype.createViewSlot = function (element, viewFactory) {
-        var view = viewFactory.create(this.container);
+        var view = viewFactory.create(this.container); // <<< time consumer, I should rebuild ?
         var viewSlot = new aurelia_framework_1.ViewSlot(element, true);
         viewSlot.add(view);
         return viewSlot;
     };
+    /**
+     *  gets the html markup from the htmlCache and sets it to this class instance
+     *
+     */
     ColumnMarkup.prototype.updateInternalHtmlCache = function () {
         this.leftScroll = this.htmlCache.avg_content_left_scroll;
         this.mainScroll = this.htmlCache.avg_content_main_scroll;
@@ -1347,9 +1737,18 @@ exports.ColumnMarkup = ColumnMarkup;
 });
 ___scope___.file("grid/columnMarkupHelper.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * Generate the simple html columns markup from settings fetched from the attrubites
+ *
+ */
 var ColumnMarkupHelper = (function () {
     function ColumnMarkupHelper() {
     }
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.generate = function (colConfig) {
         var type = null;
         if (colConfig && colConfig.length > 0) {
@@ -1360,20 +1759,27 @@ var ColumnMarkupHelper = (function () {
         }
         this.processColumns(colConfig);
     };
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.processColumns = function (array) {
         var _this = this;
         array.forEach(function (col, index) {
+            // we need attribute or rowtemplate, else throm error
             if (!col.colField && !col.colRowTemplate) {
                 if (col.colType !== 'selection') {
                     throw new Error('colField is not set on column' + index);
                 }
             }
+            // set default, some can be missing
             col.colType = col.colType || 'text';
             col.colFilterTop = col.colFilterTop || false;
             col.colHeaderName = col.colHeaderName || _this.getAttribute(col.colField, true);
             col.colWidth = col.colWidth || 100;
             col.colCss = col.colCss || '';
             col.colField = _this.checkAttribute(col.colField);
+            // create row and header templates
             _this.createHeaderTemplate(col);
             _this.createRowTemplate(col);
             if (col.colRowTemplate) {
@@ -1384,12 +1790,18 @@ var ColumnMarkupHelper = (function () {
             }
         });
     };
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.createHeaderTemplate = function (col) {
+        // if header template does not exist then lets create it
         if (!col.colHeaderTemplate) {
             var inputHeader = void 0;
             var labelHeader = void 0;
             switch (col.colType) {
                 case 'selection':
+                    // set template
                     labelHeader = '';
                     inputHeader = "<input \n            class=\"avg-row-checkbox-100\" \n            v-selection=\"type:header;selected.bind:selected\" \n            type=\"checkbox\">";
                     break;
@@ -1405,6 +1817,7 @@ var ColumnMarkupHelper = (function () {
                     labelHeader = this.createLabelMarkup(col);
                     break;
             }
+            // set correctly to where is is suppoed to be
             if (col.colFilterTop) {
                 col.__colHeaderTemplateGenerated = inputHeader + labelHeader;
             }
@@ -1413,10 +1826,16 @@ var ColumnMarkupHelper = (function () {
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.createRowTemplate = function (col) {
+        // if row template does not exist, then lets create it
         if (!col.colRowTemplate) {
             switch (col.colType) {
                 case 'selection':
+                    // set template
                     col.colRowTemplate = "<input \n            v-key-move \n            class=\"avg-row-checkbox-100\"  \n            v-selection=\"type:row;selected.bind:selected\" \n            type=\"checkbox\" >";
                     break;
                 case 'image':
@@ -1428,15 +1847,22 @@ var ColumnMarkupHelper = (function () {
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.getAttribute = function (value, capitalize) {
         var returnValue = value || 'missing!';
         if (value) {
+            // remove rowRef/tempRef
             value = value.replace('rowRef.', '');
             value = value.replace('tempRef.', '');
+            // loop it until we have the attribute
             var newValue = '';
             var done = false;
             for (var x = 0; x < value.length; x++) {
                 var letter = value.charAt(x);
+                // if we hit & or | or space we are at the end
                 if (!done && letter !== ' ' && letter !== '&' && letter !== '|' && letter !== ':') {
                     newValue = newValue + letter;
                 }
@@ -1444,6 +1870,7 @@ var ColumnMarkupHelper = (function () {
                     done = true;
                 }
             }
+            // capilize first letter
             if (capitalize) {
                 returnValue = newValue.charAt(0).toUpperCase() + newValue.slice(1);
             }
@@ -1454,6 +1881,10 @@ var ColumnMarkupHelper = (function () {
         return returnValue;
     };
     ;
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.checkAttribute = function (attribute) {
         var value = attribute;
         if (attribute) {
@@ -1463,19 +1894,36 @@ var ColumnMarkupHelper = (function () {
         }
         return value;
     };
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.createImageRowMarkup = function (col) {
+        // get the values/settings
         var classNames = 'class="avg-image-round"';
         var attributeRow = col.colAddRowAttributes ? col.colAddRowAttributes : '';
         var css = col.colCss ? "css=\"" + col.colCss + "\"" : '';
         var imageFix = "v-image-fix.bind=\"" + col.colField + "\"";
+        // insert the markup
         col.__colRowTemplateGenerated = "<image " + css + " " + classNames + " " + imageFix + " " + attributeRow + ">";
     };
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.createInputRowMarkup = function (col) {
+        // get the values/settings
         var colClass = "class=\"" + (col.colType === 'checkbox' ? 'avg-row-checkbox-100' : 'avg-row-input') + "\"";
+        // type
         var colType = "type=\"" + col.colType + "\"";
+        // get attributes row
         var colAddRowAttributes = col.colAddRowAttributes ? col.colAddRowAttributes : '';
+        // menu ?
         var colRowMenu = col.colRowMenu ? "v-menu=\"" + col.colRowMenu + "\"" : '';
+        // get css
         var colCss = col.colCss ? "css=\"" + col.colCss + "\"" : '';
+        // is it a checkbox?
+        // todo: adding the observer part without choice, maybe param for that?
         if (col.colType === 'checkbox') {
             col.__colRowTemplateGenerated = "<input \n        " + colCss + " \n        " + colClass + " \n        " + colType + " \n        " + colAddRowAttributes + " \n        " + colRowMenu + "  \n        checked.bind=\"" + col.colField + "\">";
         }
@@ -1487,12 +1935,21 @@ var ColumnMarkupHelper = (function () {
             col.__colRowTemplateGenerated = "<input \n        " + colCss + " \n        " + colClass + " \n        " + colType + " \n        " + colRowMenu + "\n        " + colAddRowAttributes + "  \n        " + binding + ">";
         }
     };
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.createInputHeaderMarkup = function (col) {
+        // is it filter ?
         var markup;
         if (col.colFilter) {
+            // type
             var type = "type=\"" + col.colType + "\"";
+            // filter
             var filter = col.colFilter ? "v-filter=\"" + col.colFilter + "\"" : '';
+            // get attributes label
             var colAddFilterAttributes = col.colAddFilterAttributes ? col.colAddFilterAttributes : '';
+            // is it a checkbox ?
             var classNames = '';
             if (col.colType === 'checkbox') {
                 classNames = "class=\"" + (col.colFilterTop ? 'avg-row-checkbox-50' : 'avg-row-checkbox-50') + "\"";
@@ -1506,9 +1963,15 @@ var ColumnMarkupHelper = (function () {
         else {
             markup = '';
         }
+        // return the markup
         return markup;
     };
+    /**
+     * todo description
+     *
+     */
     ColumnMarkupHelper.prototype.createLabelMarkup = function (col) {
+        // get the values/settings
         var filterClass = col.colFilter ? "" + (col.colFilterTop ? 'avg-label-bottom' : 'avg-label-top') : 'avg-label-full';
         var dragDropClass = col.colDragDrop ? 'avg-vGridDragHandle' : '';
         var classname = "class=\"" + dragDropClass + " " + filterClass + "\"";
@@ -1518,6 +1981,8 @@ var ColumnMarkupHelper = (function () {
         var colDragDrop = col.colDragDrop !== 'false' ? "v-drag-drop-col=\"" + col.colDragDrop + "\"" : '';
         var colResizeable = col.colResizeable !== 'false' ? "v-resize-col" : '';
         var extraAttributes = colDragDrop + " " + colResizeable + " " + colLabelMenu;
+        // apply magic
+        // todo, atm Im adding resize columns and dragdrop columns, should this be a choice?
         return "<p \n      " + extraAttributes + " \n      " + classname + " \n      " + sort + " \n      " + colAddLabelAttributes + ">\n      " + col.colHeaderName + "\n      </p>";
     };
     return ColumnMarkupHelper;
@@ -1527,6 +1992,12 @@ exports.ColumnMarkupHelper = ColumnMarkupHelper;
 });
 ___scope___.file("grid/htmlHeightWidth.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * Holds all the height and width of main markup
+ * This is binded to the main markup, so changes here will reflect in the grid height/width
+ *
+ */
 var HtmlHeightWidth = (function () {
     function HtmlHeightWidth(controller) {
         this.controller = controller;
@@ -1570,16 +2041,27 @@ var HtmlHeightWidth = (function () {
         this.avgContentHhandleScroll_Width = 17;
         this.avgFooter_Height = 30;
     }
+    /**
+     * returns the height the scroll area need to be
+     * TODO: need to make something else here if -Im going for wariable row height
+     *
+     */
     HtmlHeightWidth.prototype.getNewHeight = function (length) {
         var lengthTotal = 0;
         if (this.controller.attVariableRowHeight) {
+            // If variable row height we need to use the 
             lengthTotal = this.controller.getRowHeightState().total;
         }
         else {
+            // if not varibale row height, we use default
             lengthTotal = this.controller.attRowHeight * length;
         }
         return lengthTotal;
     };
+    /**
+     * corrects the scroll area to the correct high af all scroll divs
+     *
+     */
     HtmlHeightWidth.prototype.setCollectionLength = function (length, includeScroller) {
         var rowTotal = this.getNewHeight(length);
         var avgScrollbarHeightValue = includeScroller === false ? 0 : this.avgScrollBarWidth;
@@ -1590,11 +2072,16 @@ var HtmlHeightWidth = (function () {
         this.avgContentMainScroll_Height = total;
         this.avgContentLeftScroll_Height = total;
     };
+    /**
+     * sets the correct wisth of main markup/skeleton of the grid
+     *
+     */
     HtmlHeightWidth.prototype.addDefaultsAttributes = function (attHeaderHeight, attRowHeight, attFooterHeight, attPanelHeight) {
         this.attHeaderHeight = attHeaderHeight;
         this.attRowHeight = attRowHeight;
         this.attFooterHeight = attFooterHeight;
         this.attPanelHeight = attPanelHeight;
+        // set main body parts
         this.avgPanel_Height = attPanelHeight;
         this.avgHeader_Top = attPanelHeight;
         this.avgHeader_Height = attHeaderHeight;
@@ -1611,10 +2098,15 @@ var HtmlHeightWidth = (function () {
         this.avgContentHhandle_Bottom = attFooterHeight;
         this.avgContentHhandle_Height = this.avgScrollBarWidth;
     };
+    /**
+     * corrects the left style and with of columns
+     *
+     */
     HtmlHeightWidth.prototype.adjustWidthsColumns = function (columnBindingContext, groupsLength) {
         var left = groupsLength ? groupsLength * 15 : 0;
         var main = 0;
         var right = 0;
+        // tslint:disable-next-line:prefer-for-of
         for (var i = 0; i < columnBindingContext.setupmain.length; i++) {
             if (columnBindingContext.setupleft[i].show) {
                 left = left + columnBindingContext.setupleft[i].width;
@@ -1640,10 +2132,15 @@ var HtmlHeightWidth = (function () {
         this.avgContentHhandle_Left = left;
         this.avgContentHhandleScroll_Width = main;
     };
+    /**
+     * sets the correct with of columns based of the v-column or v-grid-col attributes
+     *
+     */
     HtmlHeightWidth.prototype.setWidthFromColumnConfig = function (colConfig, groupsLength) {
         var left = groupsLength ? groupsLength * 15 : 0;
         var main = 0;
         var right = 0;
+        // tslint:disable-next-line:prefer-for-of
         for (var i = 0; i < colConfig.length; i++) {
             switch (true) {
                 case colConfig[i].colPinLeft && colConfig[i].colPinRight:
@@ -1676,17 +2173,24 @@ var HtmlHeightWidth = (function () {
         this.avgContentHhandle_Left = left;
         this.avgContentHhandleScroll_Width = main;
     };
+    /**
+     * returns the scrollbar with used in browser
+     *
+     */
     HtmlHeightWidth.prototype.getScrollbarWidth = function () {
         var outer = document.createElement('div');
         outer.style.visibility = 'hidden';
         outer.style.width = '100px';
         document.body.appendChild(outer);
         var widthNoScroll = outer.offsetWidth;
+        // force scrollbars
         outer.style.overflow = 'scroll';
+        // add innerdiv
         var inner = document.createElement('div');
         inner.style.width = '100%';
         outer.appendChild(inner);
         var widthWithScroll = inner.offsetWidth;
+        // remove divs
         outer.parentNode.removeChild(outer);
         return widthNoScroll - widthWithScroll;
     };
@@ -1697,6 +2201,11 @@ exports.HtmlHeightWidth = HtmlHeightWidth;
 });
 ___scope___.file("grid/viewSlots.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * This holds all the grids viewslots, so its easy to bind and attach and unbind/detach when removed
+ *
+ */
 var ViewSlots = (function () {
     function ViewSlots(htmlCache) {
         this.rowCache = htmlCache.rowCache;
@@ -1705,21 +2214,33 @@ var ViewSlots = (function () {
         this.mainRowViewSlots = [];
         this.rightRowViewSlots = [];
         this.groupRowViewSlots = [];
+        // header view slots
         this.leftHeaderViewSlot = null;
         this.mainHeaderViewSlot = null;
         this.rightHeaderViewSlot = null;
+        // entire grid markup / skeleton
         this.mainViewSlot = null;
+        // misc other viewslots
         this.loadingScreenViewSlot = null;
         this.groupingViewSlots = [];
         this.contextMenu = null;
+        // grouping elements viewslots is not here... see GroupingElements class
     }
+    /**
+     * Bind and attaches the viewslots
+     * Called when created, and reattached after if.bind is used
+     *
+     */
     ViewSlots.prototype.bindAndAttachColumns = function (overrideContext, columnBindingContext, curSelection) {
         var context;
+        // create a extra parent override context so we can add
+        // overrideContext from model holding grid and columnbinding
         var newParentOverrideContext = {
             bindingContext: columnBindingContext,
             parentOverrideContext: overrideContext
         };
         for (var i = 0; i < this.rowCache.length; i++) {
+            // one for each row.
             context = { rowRef: {}, tempRef: {} };
             this.rowCache[i].bindingContext = context;
             this.rowCache[i].parentOverrideContext = {
@@ -1735,6 +2256,7 @@ var ViewSlots = (function () {
             this.groupRowViewSlots[i].bind(this.rowCache[i].bindingContext, this.rowCache[i].parentOverrideContext);
             this.groupRowViewSlots[i].attached();
         }
+        // add selection to the context, so we can control selection (delselect/select all)
         context = { selection: curSelection };
         this.headerCache.bindingContext = context;
         this.headerCache.parentOverrideContext = {
@@ -1747,7 +2269,13 @@ var ViewSlots = (function () {
         this.mainHeaderViewSlot.attached();
         this.rightHeaderViewSlot.bind(this.headerCache.bindingContext, this.headerCache.parentOverrideContext);
         this.rightHeaderViewSlot.attached();
+        // todo loading screen and footer?
     };
+    /**
+     * Unbinds and detach all the viewslots
+     * usually called during grids unbind event
+     *
+     */
     ViewSlots.prototype.unbindAndDetachColumns = function () {
         for (var i = 0; i < this.groupRowViewSlots.length; i++) {
             this.leftRowViewSlots[i].unbind();
@@ -1765,7 +2293,13 @@ var ViewSlots = (function () {
         this.mainHeaderViewSlot.detached();
         this.rightHeaderViewSlot.unbind();
         this.rightHeaderViewSlot.detached();
+        // todo loading screen and footer, or grouping elements?
     };
+    /**
+     * removes all viewslots
+     * Todo, is this even in use?
+     *
+     */
     ViewSlots.prototype.clear = function () {
         for (var i = 0; i < this.groupRowViewSlots.length; i++) {
             this.leftRowViewSlots[i].removeAll();
@@ -1787,6 +2321,7 @@ var ViewSlots = (function () {
         this.leftHeaderViewSlot = null;
         this.mainHeaderViewSlot = null;
         this.rightHeaderViewSlot = null;
+        // todo loading screen and footer, or grouping elements?
     };
     return ViewSlots;
 }());
@@ -1795,6 +2330,12 @@ exports.ViewSlots = ViewSlots;
 });
 ___scope___.file("grid/columnBindingContext.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * Columns context object
+ * Helps control the columns/rows get groups etc
+ *
+ */
 var ColumnBindingContext = (function () {
     function ColumnBindingContext(controller) {
         var _this = this;
@@ -1815,6 +2356,10 @@ var ColumnBindingContext = (function () {
             }
         };
     }
+    /**
+     * todo description
+     *
+     */
     ColumnBindingContext.prototype.clear = function () {
         var _this = this;
         this.setupleft = [];
@@ -1840,14 +2385,27 @@ exports.ColumnBindingContext = ColumnBindingContext;
 });
 ___scope___.file("grid/rowDataBinder.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * Updates the data rows and sets correct row highlight
+ *
+ */
 var RowDataBinder = (function () {
     function RowDataBinder(element, controller) {
         this.element = element;
         this.controller = controller;
     }
+    /**
+     * Called when grid is created to set defaults, add event listners
+     *
+     */
     RowDataBinder.prototype.init = function () {
         this.addEventListener();
     };
+    /**
+     * rebinds row passed in
+     *
+     */
     RowDataBinder.prototype.rebindRowNo = function (row) {
         var rowCache = this.controller.htmlCache.rowCache;
         var foundRowCache = null;
@@ -1866,12 +2424,25 @@ var RowDataBinder = (function () {
             });
         }
     };
+    /**
+     * adds needed event listners to know when to rebind on scrolling
+     *
+     */
     RowDataBinder.prototype.addEventListener = function () {
         this.rebindRowBinded = this.rebindRow.bind(this);
         this.rebindAllRowsBinded = this.rebindAllRows.bind(this);
         this.element.addEventListener('avg-rebind-row', this.rebindRowBinded);
         this.element.addEventListener('avg-rebind-all-rows', this.rebindAllRowsBinded);
     };
+    /*  unused for now
+        private removeEventListener(): void {
+        this.element.removeEventListener('avg-rebind-row', this.rebindRowBinded);
+        this.element.removeEventListener('avg-rebind-all-rows', this.rebindAllRowsBinded);
+      }*/
+    /**
+     * rebinds row, called from event listener
+     *
+     */
     RowDataBinder.prototype.rebindRow = function (event) {
         var currentRow = event.detail.currentRow;
         var rowCache = event.detail.rowCache;
@@ -1886,6 +2457,7 @@ var RowDataBinder = (function () {
                     rowCache.isGroup = false;
                 }
             }
+            // todo clean up...
             var isSelected = data.selection.isSelected(rowCache.row);
             if (isSelected) {
                 if (!rowCache.selected) {
@@ -1915,13 +2487,21 @@ var RowDataBinder = (function () {
                 rowCache.right.style.display = 'block';
                 rowCache.group.style.display = 'block';
             }
+            // row ref & temp
             bindingContext.rowRef = data.rowRef;
             bindingContext.tempRef = data.tempRef;
+            // selection
             bindingContext.selection = data.selection;
+            // is selected
             bindingContext.selected = isSelected;
+            // row number
             bindingContext.row = currentRow;
         });
     };
+    /**
+     * rebinds all rows, called from event listener
+     *
+     */
     RowDataBinder.prototype.rebindAllRows = function (event) {
         var rowCache = event.detail.rowCache;
         var downScroll = event.detail.downScroll;
@@ -1936,6 +2516,7 @@ var RowDataBinder = (function () {
                         rowCache[i].isGroup = false;
                     }
                 }
+                // todo clean up...
                 var isSelected = data.selection.isSelected(rowCache[i].row);
                 if (isSelected) {
                     if (!rowCache[i].selected) {
@@ -1965,14 +2546,19 @@ var RowDataBinder = (function () {
                     rowCache[i].right.style.display = 'block';
                     rowCache[i].group.style.display = 'block';
                 }
+                // row ref & tempRef
                 bindingContext.rowRef = data.rowRef;
                 bindingContext.tempRef = data.tempRef;
+                // selection
                 bindingContext.selection = data.selection;
+                // is selected
                 bindingContext.selected = isSelected;
+                // row number
                 bindingContext.row = rowCache[i].row;
             });
         };
         var this_1 = this;
+        // tslint:disable-next-line:prefer-for-of
         for (var i = 0; i < rowCache.length; i++) {
             _loop_1(i);
         }
@@ -1984,15 +2570,26 @@ exports.RowDataBinder = RowDataBinder;
 });
 ___scope___.file("grid/rowClickHandler.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * Listen for click on rows
+ * Fixes/calls selection to set correct highlighs when using shift/contrl button for multiselect
+ * Calls grids single/dbl click events
+ *
+ */
 var RowClickHandler = (function () {
     function RowClickHandler(element, htmlCache) {
         this.element = element;
         this.htmlCache = htmlCache;
         this.selectionMode = 'none';
-        this.lastRowSelected = -1;
-        this.lastKeyKodeUsed = 'none';
+        this.lastRowSelected = -1; // this need to be reset when filtering
+        this.lastKeyKodeUsed = 'none'; // this ned to be reset when filtering
         this.selectedRows = 0;
     }
+    /**
+     * Called when grid is created to set defaults, add event listners
+     *
+     */
     RowClickHandler.prototype.init = function (mode, manualSelection, controller) {
         this.controller = controller;
         this.getSelection = controller.getSelectionContext.bind(controller);
@@ -2005,8 +2602,13 @@ var RowClickHandler = (function () {
         }
         this.addEventlistener();
     };
+    /**
+     * updates selection, usually after row click values is checked and selection set
+     *
+     */
     RowClickHandler.prototype.updateSelectionOnAllRows = function () {
         var rowCache = this.htmlCache.rowCache;
+        // tslint:disable-next-line:prefer-for-of
         for (var i = 0; i < rowCache.length; i++) {
             var selection = this.getSelection();
             var isSelected = selection.isSelected(rowCache[i].row);
@@ -2031,10 +2633,18 @@ var RowClickHandler = (function () {
             }
         }
     };
+    /**
+     * returns mode of selection used
+     *
+     */
     RowClickHandler.prototype.getSelectionMode = function () {
         var selection = this.getSelection();
         return selection.getMode();
     };
+    /**
+     * remove event listeners set, not is use really atm
+     *
+     */
     RowClickHandler.prototype.removeEventlistener = function () {
         var avgLeftRows = this.htmlCache.avg_left_rows;
         var avgMainRows = this.htmlCache.avg_main_rows;
@@ -2048,6 +2658,10 @@ var RowClickHandler = (function () {
             avgRightRows[i].ondblclick = null;
         }
     };
+    /**
+     * add click events to rows
+     *
+     */
     RowClickHandler.prototype.addEventlistener = function () {
         var avgLeftRows = this.htmlCache.avg_left_rows;
         var avgMainRows = this.htmlCache.avg_main_rows;
@@ -2084,6 +2698,10 @@ var RowClickHandler = (function () {
             return null;
         }
     };
+    /**
+     * Called when single click event triggers
+     *
+     */
     RowClickHandler.prototype.singleClick = function (event) {
         var cache = this.getCache(event.currentTarget) || {};
         if (!cache.isGroup) {
@@ -2099,6 +2717,10 @@ var RowClickHandler = (function () {
             });
         }
     };
+    /**
+     * Called when dbl click event triggers
+     *
+     */
     RowClickHandler.prototype.doubleClick = function (event) {
         var cache = this.getCache(event.currentTarget) || {};
         this.controller.raiseEvent('v-row-ondblclick', {
@@ -2108,30 +2730,58 @@ var RowClickHandler = (function () {
             row: cache.row
         });
     };
+    /**
+     * calls selection added to grid
+     *
+     */
     RowClickHandler.prototype.isSelected = function (row) {
         var selection = this.getSelection();
         return selection.isSelected(row);
     };
+    /**
+     * calls selection added to grid
+     *
+     */
     RowClickHandler.prototype.deSelect = function (row) {
         var selection = this.getSelection();
         selection.deSelect(row);
     };
+    /**
+     * calls selection added to grid
+     *
+     */
     RowClickHandler.prototype.select = function (row, addToSelection) {
         var selection = this.getSelection();
         selection.select(row, addToSelection);
     };
+    /**
+     * calls selection added to grid
+     *
+     */
     RowClickHandler.prototype.selectRange = function (start, end) {
         var selection = this.getSelection();
         selection.selectRange(start, end);
     };
+    /**
+     * calls selection added to grid
+     *
+     */
     RowClickHandler.prototype.getSelectedRows = function () {
         var selection = this.getSelection();
         return selection.getSelectedRows();
     };
+    /**
+     * calls selection added to grid
+     *
+     */
     RowClickHandler.prototype.setSelectedRows = function (newRows) {
         var selection = this.getSelection();
         selection.setSelectedRows(newRows);
     };
+    /**
+     * logic behind multiselect of rows with shoft and contrl button
+     *
+     */
     RowClickHandler.prototype.highlightRow = function (e, currentRow) {
         var isSel;
         var manualSel = this.manualSelection;
@@ -2225,13 +2875,16 @@ var RowClickHandler = (function () {
                         this.select(currentRow, false);
                     }
                     this.lastKeyKodeUsed = currentKeyKode;
+                    // update selection on rows
                     this.updateSelectionOnAllRows();
                 }
             }
             else {
+                // same row clicked again
                 if (e.ctrlKey) {
                     currentKeyKode = 'ctrl';
                 }
+                // if ctrl button we want to remove selection
                 if (currentKeyKode === 'ctrl') {
                     this.lastKeyKodeUsed = currentKeyKode;
                     isSel = this.isSelected(currentRow);
@@ -2241,8 +2894,11 @@ var RowClickHandler = (function () {
                     this.lastRowSelected = currentRow;
                 }
                 else {
+                    // else we just want to make it current..
+                    // isSel = this.isSelected(currentRow);
                     this.select(currentRow, false);
                 }
+                // update selection on rows
                 this.updateSelectionOnAllRows();
             }
         }
@@ -2254,7 +2910,14 @@ exports.RowClickHandler = RowClickHandler;
 });
 ___scope___.file("grid/groupingElements.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var aurelia_framework_1 = require("aurelia-framework");
+// Two classes here!   GroupContext & GroupingElements
+/**
+ * Private class used by grouping elements
+ * This is the context of the box in the top panel
+ *
+ */
 var GroupContext = (function () {
     function GroupContext(name, field, groupingElements) {
         this.name = name;
@@ -2267,8 +2930,16 @@ var GroupContext = (function () {
     };
     return GroupContext;
 }());
+/**
+ * Creates the grouping elements viewports and logic
+ * This take care of the top panel, when called it adds the html element with its context
+ * It also fixes/sets corrcet panel when grid is created/ grouping runs by code
+ *
+ */
+// tslint:disable-next-line:max-classes-per-file
 var GroupingElements = (function () {
     function GroupingElements(element, viewCompiler, container, viewResources, htmlCache, viewSlots, columnBindingContext) {
+        // basic stuff
         this.element = element;
         this.htmlCache = htmlCache;
         this.viewSlots = viewSlots;
@@ -2276,6 +2947,7 @@ var GroupingElements = (function () {
         this.container = container;
         this.viewResources = viewResources;
         this.columnBindingContext = columnBindingContext;
+        // group context
         this.groupContext = {};
         this.lastAdded = null;
     }
@@ -2288,15 +2960,25 @@ var GroupingElements = (function () {
         }
         return x;
     };
+    /**
+     * Called when grid is created to set defaults, add event listners
+     *
+     */
     GroupingElements.prototype.init = function (controller, colGroupElement) {
         this.controller = controller;
         this.avgTopPanel = this.htmlCache.avg_top_panel;
         this.colGroupElement = colGroupElement;
     };
+    /**
+     * todo description
+     *
+     */
     GroupingElements.prototype.addGroup = function (name, field) {
         if (!this.groupContext[field]) {
             this.lastAdded = field;
             this.groupContext[field] = new GroupContext(name, field, this);
+            // view-viewslot
+            // tslint:disable:max-line-length
             var viewMarkup = this.colGroupElement ||
                 "<div class=\"avg-grouping\">  \n          <p class=\"avg-grouping-element\" v-sort=\"field.bind:field\">" + name + " \n            <i><svg click.delegate=\"remove()\" class=\"icon iconhidden\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\">\n              <path d=\"M3 4l4.3 4L3 12h1.4L8 8.7l3.5 3.3H13L8.6 8 13 4h-1.5L8 7.3 4.4 4H3z\"/>\n            </svg></i>\n          </p>\n         </div>";
             var viewFactory = this.viewCompiler.compile("<template>" + viewMarkup + "</template>", this.viewResources);
@@ -2309,13 +2991,17 @@ var GroupingElements = (function () {
         this.groupContext[field].viewSlot.bind(this.groupContext[field]);
         this.groupContext[field].viewSlot.attached();
     };
+    /**
+     * todo description
+     *
+     */
     GroupingElements.prototype.removeGroup = function (field) {
         if (field) {
             if (this.groupContext[field] !== null) {
                 this.groupContext[field].viewSlot.unbind();
                 this.groupContext[field].viewSlot.detached();
                 this.groupContext[field].viewSlot.removeAll();
-                this.groupContext[field] = null;
+                this.groupContext[field] = null; // <-- I could prb reuse them...
             }
         }
         else {
@@ -2330,6 +3016,10 @@ var GroupingElements = (function () {
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     GroupingElements.prototype.addToGrouping = function () {
         if (this.lastAdded) {
             var toAddField = this.groupContext[this.lastAdded].field;
@@ -2338,6 +3028,10 @@ var GroupingElements = (function () {
             this.lastAdded = null;
         }
     };
+    /**
+     * todo description
+     *
+     */
     GroupingElements.prototype.removeFromGrouping = function (field) {
         this.controller.removeFromGrouping(field);
     };
@@ -2348,7 +3042,13 @@ exports.GroupingElements = GroupingElements;
 });
 ___scope___.file("grid/loadingScreen.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var aurelia_framework_1 = require("aurelia-framework");
+/**
+ * Creates the loading screen viewport and binds it
+ * Controller calls this to enable/disable (show/hide) it
+ *
+ */
 var LoadingScreen = (function () {
     function LoadingScreen(element, viewCompiler, container, viewResources, viewSlots) {
         this.element = element;
@@ -2359,9 +3059,17 @@ var LoadingScreen = (function () {
         this.loading = false;
         this.loadingMessage = 'Loading';
     }
+    /**
+     * update default loading test, used by the translation
+     *
+     */
     LoadingScreen.prototype.updateLoadingDefaultLoadingMessage = function (msg) {
         this.loadingMessage = msg;
     };
+    /**
+     * call when creating the grid so we have custom html if any and overridecontext to use
+     *
+     */
     LoadingScreen.prototype.init = function (overrideContext, loadingScreenTemplate) {
         this.overrideContext = overrideContext;
         var loadingScreentHtml = loadingScreenTemplate || "[\n      <div class=\"avg-overlay\" if.bind=\"loading\">\n      </div>\n      <div if.two-way=\"loading\" class=\"avg-progress-indicator\">\n      <div class=\"avg-progress-bar\" role=\"progressbar\" style=\"width:100%\">\n      <span>$au{ loadingMessage }</span>\n      </div>\n      </div>".replace(/\$(au{)/g, '${');
@@ -2369,6 +3077,7 @@ var LoadingScreen = (function () {
         var view = viewFactory.create(this.container);
         var loadingScreenViewSlot = new aurelia_framework_1.ViewSlot(this.element, true);
         loadingScreenViewSlot.add(view);
+        // bind
         loadingScreenViewSlot.bind(this, {
             bindingContext: this,
             parentOverrideContext: this.overrideContext
@@ -2376,6 +3085,10 @@ var LoadingScreen = (function () {
         loadingScreenViewSlot.attached();
         this.viewSlots.loadingScreenViewSlot = loadingScreenViewSlot;
     };
+    /**
+     * shows the loadingscreen overlay until removed
+     *
+     */
     LoadingScreen.prototype.enable = function (msg, collectionLength) {
         var _this = this;
         return new Promise(function (resolve) {
@@ -2386,6 +3099,10 @@ var LoadingScreen = (function () {
             });
         });
     };
+    /**
+     * removes the loadingscreen overlay
+     *
+     */
     LoadingScreen.prototype.disable = function () {
         var _this = this;
         return new Promise(function (resolve) {
@@ -2402,7 +3119,13 @@ exports.LoadingScreen = LoadingScreen;
 });
 ___scope___.file("grid/contextMenu.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+// tslint:disable:max-line-length
 var aurelia_framework_1 = require("aurelia-framework");
+/**
+ * Creates the context menus used in the grid
+ *
+ */
 var ContextMenu = (function () {
     function ContextMenu(viewCompiler, container, viewResources, viewSlots) {
         this.menuStrings = {
@@ -2434,6 +3157,10 @@ var ContextMenu = (function () {
         this.viewSlots = viewSlots;
         this.setDefaults();
     }
+    /**
+     * todo description
+     *
+     */
     ContextMenu.prototype.setDefaults = function () {
         this.top = 0;
         this.left = 0;
@@ -2443,6 +3170,10 @@ var ContextMenu = (function () {
         this.filterMainMenu = false;
         this.filterOptionsMenu = false;
     };
+    /**
+     * add the custom templates if any and overridecontext to use
+     *
+     */
     ContextMenu.prototype.init = function (customMenuTemplates, overrideContext) {
         this.overrideContext = overrideContext;
         var viewFactory = this.viewCompiler.compile("<template>" + this.menuHtml(customMenuTemplates) + "</template>", this.viewResources);
@@ -2453,6 +3184,10 @@ var ContextMenu = (function () {
         viewSlot.bind(this, { bindingContext: this, parentOverrideContext: this.overrideContext });
         viewSlot.attached();
     };
+    /**
+     * opens the menu
+     *
+     */
     ContextMenu.prototype.openMenu = function (options) {
         this.left = options.left;
         this.top = options.top;
@@ -2463,6 +3198,10 @@ var ContextMenu = (function () {
         this.show = true;
         this.callback = options.callback;
     };
+    /**
+     * menu click event
+     *
+     */
     ContextMenu.prototype.menuClick = function (type, option, event) {
         switch (true) {
             case type === 'filter' && option === 'options':
@@ -2485,17 +3224,56 @@ var ContextMenu = (function () {
                 }
         }
     };
+    /**
+     * update/translate menu strings
+     *
+     */
     ContextMenu.prototype.updateMenuStrings = function (key, text) {
         if (this.menuStrings[key]) {
             this.menuStrings[key] = text;
         }
     };
+    /**
+     * active the filter menu
+     *
+     */
     ContextMenu.prototype.showFilterOptions = function () {
         this.filterOptionsMenu = true;
     };
+    /**
+     * hide the filter menu
+     *
+     */
     ContextMenu.prototype.hideFilterOptions = function () {
         this.filterOptionsMenu = false;
     };
+    /*  positionMenu(x, y) {
+        //not in use atm
+        let clickCoordsX = this.left;
+        let clickCoordsY = this.top;
+    
+        this.menuWidth = this.menu.offsetWidth + 4;
+        this.menuHeight = this.menu.offsetHeight + 4;
+    
+        this.windowWidth = window.innerWidth;
+        this.windowHeight = window.innerHeight;
+    
+        if ((this.windowWidth - this.clickCoordsX) < this.menuWidth) {
+          this.left = this.windowWidth - this.menuWidth + "px";
+        } else {
+          this.left = this.clickCoordsX + "px";
+        }
+    
+        if ((this.windowHeight - this.clickCoordsY) < this.menuHeight) {
+          this.top = this.windowHeight - this.menuHeight + "px";
+        } else {
+          this.top = this.clickCoordsY + "px";
+        }
+      }*/
+    /**
+     * get the markup (custom if any, or else the markup)
+     *
+     */
     ContextMenu.prototype.menuHtml = function (customMenuTemplates) {
         var menuTop = "<div css=\"top:$au{top}px;left:$au{left}px\" if.bind=\"show\" class=\"avg-default avg-menu\">".replace(/\$(au{)/g, '${');
         var menuClose = customMenuTemplates.close ||
@@ -2529,15 +3307,13 @@ exports.ContextMenu = ContextMenu;
 
 });
 ___scope___.file("grid/v-grid.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var aurelia_framework_1 = require("aurelia-framework");
 var mainMarkup_1 = require("./mainMarkup");
@@ -2556,15 +3332,22 @@ var controller_1 = require("./controller");
 var loadingScreen_1 = require("./loadingScreen");
 var contextMenu_1 = require("./contextMenu");
 var footer_1 = require("./footer");
+/**
+ * Custom Element <v-grid>
+ *
+ */
 var VGrid = (function () {
     function VGrid(element, viewCompiler, container, viewResources, taskQueue) {
+        // injected variables
         this.element = element;
         this.viewCompiler = viewCompiler;
         this.container = container;
         this.viewResources = viewResources;
         this.taskQueue = taskQueue;
+        // used by attributes for holding data
         this.dragDropAttributeSharedContext = {};
         this.resizeAttributeSharedContext = {};
+        // use by v-grid-col element, that takes the data it gets and puts it in here
         this.colConfig = [];
         this.backupColConfig = [];
         this.colRepeater = false;
@@ -2575,7 +3358,9 @@ var VGrid = (function () {
         this.customMenuTemplates = {};
         this.footerTemplate = null;
         this.loadingScreenTemplate = null;
+        // to know if new or hidden by "if"
         this.newGrid = true;
+        // create our classes
         this.controller = new controller_1.Controller(this);
         this.htmlCache = new htmlCache_1.HtmlCache(element);
         this.htmlHeightWidth = new htmlHeightWidth_1.HtmlHeightWidth(this.controller);
@@ -2602,7 +3387,7 @@ var VGrid = (function () {
             '!=': 'not equal to',
             '!*': 'does not contain',
             '*=': 'begins with',
-            '=*': 'ends with'
+            '=*': 'ends with' // 10
         };
         this.filterOperatorTranslationKeys = {
             equals: '=',
@@ -2618,8 +3403,10 @@ var VGrid = (function () {
         };
     }
     VGrid.prototype.bind = function (bindingContext, overrideContext) {
+        // binding contexts, will need some for the views we create
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
+        // convert main attributes
         this.attRowHeight = this.attRowHeight ? this.attRowHeight * 1 : 25;
         this.attHeaderHeight = this.attHeaderHeight ? this.attHeaderHeight * 1 : 25;
         this.attFooterHeight = this.attFooterHeight ? this.attFooterHeight * 1 : 25;
@@ -2634,27 +3421,44 @@ var VGrid = (function () {
         this.attI18N = typeof this.attI18N === 'function' ? this.attI18N : null;
     };
     VGrid.prototype.unbind = function () {
+        // if unbined we want to know if its new time ( I prb should have more code in created event... to late...)
         this.newGrid = false;
+        // unbind all the columns
         this.viewSlots.unbindAndDetachColumns();
+        // todo: should I bind the main, grouping and loading screen here?
     };
     VGrid.prototype.attached = function () {
         var _this = this;
+        // connect grid, and let gridConnector tell us if we can generate the grid or now
+        // this way we give the gridconnetor/datasource a chance to get ready before we start asking for stuff
         this.attGridConnector.connect(this.controller, function () {
+            // if not new, and just hidden by if.bind, 
+            // then lets just skip creating the grid and just bind the columns    
             if (_this.newGrid) {
                 _this.backupColConfig = _this.colConfig.slice(0);
+                // override colconfig if binded
                 if (_this.attColConfig) {
                     _this.colConfig = _this.attColConfig.length > 0 ? _this.attColConfig : _this.colConfig;
                 }
                 _this.controller.getContext();
                 _this.controller.createGrid();
             }
+            // bind columns
             _this.viewSlots.bindAndAttachColumns(_this.overrideContext, _this.columnBindingContext, _this.attGridConnector.getSelection());
+            // update horizontal scroller
+            // todo, use TaskQueue
             setTimeout(function () {
                 _this.controller.udateHorizontalScroller();
             }, 50);
+            // todo: should I bind the main, grouping and loading screen here?
+            // connect gridConnector to this controler
             _this.attGridConnector.gridCreated();
         });
     };
+    /**
+     * Checkes bool values if they are strings or or and return real boolean
+     *
+     */
     VGrid.prototype.checkBool = function (value) {
         if (typeof value === 'string') {
             value = value.toLowerCase();
@@ -2678,63 +3482,55 @@ var VGrid = (function () {
 }());
 VGrid.inject = [Element, aurelia_framework_1.ViewCompiler, aurelia_framework_1.Container, aurelia_framework_1.ViewResources, aurelia_framework_1.TaskQueue];
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-row-height' }),
-    __metadata("design:type", Number)
-], VGrid.prototype, "attRowHeight", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-row-height' })
+], VGrid.prototype, "attRowHeight");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-header-height' }),
-    __metadata("design:type", Number)
-], VGrid.prototype, "attHeaderHeight", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-header-height' })
+], VGrid.prototype, "attHeaderHeight");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-footer-height' }),
-    __metadata("design:type", Number)
-], VGrid.prototype, "attFooterHeight", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-footer-height' })
+], VGrid.prototype, "attFooterHeight");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-panel-height' }),
-    __metadata("design:type", Number)
-], VGrid.prototype, "attPanelHeight", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-panel-height' })
+], VGrid.prototype, "attPanelHeight");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-grid-connector' }),
-    __metadata("design:type", Object)
-], VGrid.prototype, "attGridConnector", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-grid-connector' })
+], VGrid.prototype, "attGridConnector");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-multi-select' }),
-    __metadata("design:type", Boolean)
-], VGrid.prototype, "attMultiSelect", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-multi-select' })
+], VGrid.prototype, "attMultiSelect");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-manual-sel' }),
-    __metadata("design:type", Boolean)
-], VGrid.prototype, "attManualSelection", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-manual-sel' })
+], VGrid.prototype, "attManualSelection");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-theme' }),
-    __metadata("design:type", String)
-], VGrid.prototype, "attTheme", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-theme' })
+], VGrid.prototype, "attTheme");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-row-on-draw' }),
-    __metadata("design:type", Function)
-], VGrid.prototype, "attOnRowDraw", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-row-on-draw' })
+], VGrid.prototype, "attOnRowDraw");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-columns' }),
-    __metadata("design:type", Array)
-], VGrid.prototype, "attColConfig", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-columns' })
+], VGrid.prototype, "attColConfig");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-i18n' }),
-    __metadata("design:type", Function)
-], VGrid.prototype, "attI18N", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-i18n' })
+], VGrid.prototype, "attI18N");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-data-delay' }),
-    __metadata("design:type", Number)
-], VGrid.prototype, "attDataDelay", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-data-delay' })
+], VGrid.prototype, "attDataDelay");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'v-variable-row-height' }),
-    __metadata("design:type", Boolean)
-], VGrid.prototype, "attVariableRowHeight", void 0);
+    aurelia_framework_1.bindable({ attribute: 'v-variable-row-height' })
+], VGrid.prototype, "attVariableRowHeight");
 exports.VGrid = VGrid;
 
 });
 ___scope___.file("grid/footer.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var aurelia_framework_1 = require("aurelia-framework");
+/**
+ * Creates the footer viewport
+ *
+ */
 var Footer = (function () {
     function Footer(htmlCache, viewCompiler, container, viewResources, viewSlots) {
         this.htmlCache = htmlCache;
@@ -2743,6 +3539,10 @@ var Footer = (function () {
         this.container = container;
         this.viewResources = viewResources;
     }
+    /**
+     * set the custm html if any and and overridecontext to use, then creates the viewport and binds it
+     *
+     */
     Footer.prototype.init = function (overrideContext, footerStringTemplate) {
         this.overrideContext = overrideContext;
         var footerTemplate = footerStringTemplate || "".replace(/\$(au{)/g, '${');
@@ -2750,6 +3550,7 @@ var Footer = (function () {
         var view = viewFactory.create(this.container);
         var footerViewSlot = new aurelia_framework_1.ViewSlot(this.htmlCache.avg_footer, true);
         footerViewSlot.add(view);
+        // bind
         footerViewSlot.bind(this, {
             bindingContext: this,
             parentOverrideContext: this.overrideContext
@@ -2764,7 +3565,12 @@ exports.Footer = Footer;
 });
 ___scope___.file("gridConnector.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var GridConnector = (function () {
+    /**
+     * Creates an instance of GridConnector.
+     *
+     */
     function GridConnector(datasource, selection, errorHandler) {
         this.initTop = 0;
         this.controller = null;
@@ -2773,20 +3579,44 @@ var GridConnector = (function () {
         this.selection = selection || datasource.getSelection();
         this.errorhandler = errorHandler || null;
     }
+    /**
+     * Set scroll value grid will use when it loads
+     * Useful for when going back from a detail view
+     * Used by default datasource
+     *
+     */
     GridConnector.prototype.setInitTop = function (top) {
         this.initTop = top;
     };
+    /**
+     * Grid will call for this when a row is clicked
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.getSelection = function () {
         return this.selection;
     };
+    /**
+     * Grid calls this to connect, we then haveto call the create function to grid to generate
+     * Some might need to get a datasource ready first/call server so its usefull to know if should be created
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.connect = function (controller, create) {
         this.controller = controller;
         this.eventID = this.datasource.addEventListener(this.eventHandler.bind(this));
+        // keep it hidden while we create
         this.controller.element.style.visibility = 'hidden';
         create();
     };
+    /**
+     * Grid calls this when its created, you can now tell it to display data etc
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.gridCreated = function () {
         var _this = this;
+        // I want to be able to override this, so you could add/do more with datasource before displaying results
         this.raiseEvent('sortIconUpdate');
         this.controller.updateHeights();
         setTimeout(function () {
@@ -2795,34 +3625,74 @@ var GridConnector = (function () {
             _this.raiseEvent('filterUpdateValues');
             _this.controller.triggerScroll(_this.initTop);
             setTimeout(function () {
+                // display it so we dont haveto see lags if grouping etc is set
                 _this.controller.element.style.visibility = 'visible';
             }, 100);
         }, 0);
     };
+    /**
+     * Grid will use this to select in datasource
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.select = function (row) {
         this.datasource.select(row);
     };
+    /**
+     * Used by rowScroll events class and htmlheights class to get data needed for variable row height
+     * Need be in custom gridConnector //Todo, check if it exsist in gridcode, so its not mandatory
+     *
+     */
     GridConnector.prototype.getRowHeightState = function () {
         return this.datasource.getRowHeightState();
     };
+    /**
+     * Grid will use this to know what size the body needs to be
+     * Is called a lot, so never call a remote for this data when grid needs it
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.getDatasourceLength = function () {
         return this.datasource.length();
     };
+    /**
+     * Can be used for getting column config inside grid
+     *
+     */
     GridConnector.prototype.getColConfig = function () {
         return this.controller.getColumnConfig();
     };
+    /**
+     * Can be used for setting column config inside grid
+     *
+     */
     GridConnector.prototype.setColConfig = function (colconfig) {
         this.controller.setColumnConfig(colconfig);
     };
+    /**
+     * Grid will call this to know if there is any grouping/what grouping is
+     * Need be in custom gridConnector //Todo, check if it exsist in gridcode, so its not mandatory
+     *
+     */
     GridConnector.prototype.getGrouping = function () {
         return this.datasource.getGrouping();
     };
+    /**
+     * Grid calls to tell it want to group
+     * Need be in custom gridConnector //Todo, check if it exsist in gridcode, so its not mandatory
+     *
+     */
     GridConnector.prototype.group = function (grouping, keepExpanded) {
         var _this = this;
         this.controller.setLoadingScreen(true, null, this.getDatasourceLength()).then(function () {
             _this.datasource.group(grouping, keepExpanded);
         });
     };
+    /**
+     * Grid calls to get entity for a row
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.getElement = function (options) {
         var rowData = this.datasource.getElement(options.row);
         var rowContext = {
@@ -2833,45 +3703,94 @@ var GridConnector = (function () {
         };
         options.callback(rowContext);
     };
+    /**
+     * Grid calls to tell it want to query
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.query = function (a) {
         var _this = this;
         this.controller.setLoadingScreen(true, null, this.getDatasourceLength()).then(function () {
             _this.datasource.query(a);
         });
     };
+    /**
+     * Grid calls to tell it want to sort
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.orderBy = function (attribute, addToCurrentSort) {
         var _this = this;
         this.controller.setLoadingScreen(true, null, this.getDatasourceLength()).then(function () {
             _this.datasource.orderBy(attribute, addToCurrentSort);
         });
     };
+    /**
+     * used to cut connection between gridConnector and datasource
+     * TODO: do I even use this/need this?
+     *
+     */
     GridConnector.prototype.destroy = function () {
         this.datasource.removeEventListener(this.eventID);
     };
+    /**
+     * Grid calls to tell it want to know the current sort order
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.getCurrentOrderBy = function () {
         return this.datasource.getCurrentOrderBy();
     };
+    /**
+     * Grid calls to tell it want to know the current filter
+     * Need be in custom gridConnector
+     *
+     */
     GridConnector.prototype.getCurrentFilter = function () {
         return this.datasource.getCurrentFilter();
     };
+    /**
+     * Grid calls to tell it want to expand a group/all
+     * Need be in custom gridConnector //Todo, check if it exsist in gridcode, so its not mandatory
+     *
+     */
     GridConnector.prototype.expandGroup = function (id) {
         var _this = this;
         this.controller.setLoadingScreen(true, null, this.getDatasourceLength()).then(function () {
             _this.datasource.groupExpand(id);
         });
     };
+    /**
+     * Grid calls to tell it want to collapse a group/all
+     * Need be in custom gridConnector //Todo, check if it exsist in gridcode, so its not mandatory
+     *
+     */
     GridConnector.prototype.collapseGroup = function (id) {
         var _this = this;
         this.controller.setLoadingScreen(true, null, this.getDatasourceLength()).then(function () {
             _this.datasource.groupCollapse(id);
         });
     };
+    /**
+     * Can be used to get current scrolltop
+     * Use this with setInitTop if you want to go between master/detail and have same rows displayed
+     *
+     */
     GridConnector.prototype.getTopRow = function () {
         return this.controller.getTopRow();
     };
+    /**
+     * Forces grid to try and update language
+     *
+     */
     GridConnector.prototype.triggerI18n = function () {
         this.controller.triggerI18N();
     };
+    /**
+     * Raise event on the grid element, usefull for overriding default behavior
+     * TODO: I really dont want much of this, at own expense
+     *
+     */
     GridConnector.prototype.raiseEvent = function (name, data) {
         if (data === void 0) { data = {}; }
         var event = new CustomEvent(name, {
@@ -2882,6 +3801,11 @@ var GridConnector = (function () {
             this.controller.element.dispatchEvent(event);
         }
     };
+    /**
+     * Listen for the events from datasource, and calls needed functions
+     * TODO: look over all event names and rename a few
+     *
+     */
     GridConnector.prototype.eventHandler = function (event) {
         switch (event) {
             case 'collection_changed':
@@ -2918,6 +3842,7 @@ var GridConnector = (function () {
                 this.controller.setLoadingScreen(false);
                 break;
             case 'selection_changed':
+                // nothing atm
                 break;
             default:
                 console.warn('unknown event');
@@ -2925,6 +3850,10 @@ var GridConnector = (function () {
         }
         return true;
     };
+    /**
+     * Just used to get data for tempRef, cant use javascript refrense here
+     *
+     */
     GridConnector.prototype.getRowProperties = function (obj) {
         var x = {};
         if (obj) {
@@ -2946,18 +3875,30 @@ exports.GridConnector = GridConnector;
 });
 ___scope___.file("dataSource.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var selection_1 = require("./selection");
 var collection_1 = require("./collection");
 var arrayUtils_1 = require("./utils/arrayUtils");
 var DataSource = (function () {
+    /**
+     * Creates an instance of DataSource.
+     *
+     */
     function DataSource(selection, config) {
+        // Set selection or create new if none is passed in
         this.selection = selection || new selection_1.Selection('single');
         this.selectionEventID = this.selection.addEventListener(this.selectionEventCallback.bind(this));
+        // overide selection get row/key from row
+        // why not in selection ? because I might need rowbased selection only
         this.selection.overrideGetRowKey(this.getRowKey.bind(this));
         this.selection.overrideGetRowKeys(this.getRowKeys.bind(this));
+        // array helper helps with grouping/sorting and filtering
         this.arrayUtils = new arrayUtils_1.ArrayUtils();
+        // key if you dont want grid to add
         this.key = null;
+        // main array fill contain all the data set to grid
         this.mainArray = null;
+        // configuration
         this.config = config;
         if (config) {
             this.key = config.key || '__avgKey';
@@ -2967,72 +3908,136 @@ var DataSource = (function () {
         else {
             this.key = '__avgKey';
         }
+        // todo, give option to override ArrayUtils, 
+        // or and option to set params you pass into array helper to override some of its functionality
+        // events, gridConnector will add event lister to datasource set to it
         this.eventIdCount = -1;
         this.eventCallBacks = [];
+        // current entity, this is what users need to link inputs etc too
         this.entity = null;
+        // create a collection
         this.collection = new collection_1.Collection(this);
     }
+    /**
+     * Returns the current selection class
+     *
+     */
     DataSource.prototype.getSelection = function () {
         return this.selection;
     };
+    /**
+     * Returns keys name used for selection/added to each entity
+     *
+     */
     DataSource.prototype.getKey = function () {
         return this.key;
     };
+    /**
+     * returns the numbers of rows in displayed view (inludes groupings etc)
+     *
+     */
     DataSource.prototype.length = function () {
         return this.collection.length;
     };
+    /**
+     * Sends event string to all listeners
+     *
+     */
     DataSource.prototype.triggerEvent = function (event) {
         var _this = this;
+        // call all event listeners
         this.eventCallBacks.forEach(function (FN, i) {
             if (FN !== null) {
                 var alive = FN(event);
                 if (!alive) {
+                    // todo: remove these after
                     _this.eventCallBacks[i] = null;
                 }
             }
         });
     };
+    /**
+     * Adds functions to callback array, this will be called when collection/selection event happens
+     *
+     */
     DataSource.prototype.addEventListener = function (callback) {
+        // add key
         this.eventIdCount++;
+        // add to callback queue
         this.eventCallBacks.push(callback);
+        // return ID, so they can remove listnener
         return this.eventIdCount;
     };
+    /**
+     * removes event listener
+     *
+     */
     DataSource.prototype.removeEventListener = function (id) {
+        // remove listtener from id
         this.eventCallBacks.splice(id, 1);
     };
+    /**
+     * Replaces internal collection and clear internal selection/sorting and grouping
+     *
+     */
     DataSource.prototype.setArray = function (array) {
+        // new collection
         this.collection = new collection_1.Collection(this);
+        // clear stuff set in ArrayUtils
         this.selection.reset();
         this.arrayUtils.resetGrouping();
+        // use the default key as sort
+        // this way first query returns result in same order as put into the datasource
         this.arrayUtils.resetSort(this.key);
+        // reset current entity
         this.entity = null;
+        // set data to collection
         this.collection.setData(array);
+        // set our main collection, we will use this for later
         this.mainArray = this.collection.getEntities();
         this.triggerEvent('collection_changed');
     };
+    /**
+     * Adds to internal/displayed collection and reruns sort and grouping
+     *
+     */
     DataSource.prototype.push = function (array) {
         if (Array.isArray(array)) {
+            // get current grouping and collection
             var grouping = this.arrayUtils.getGrouping();
             var collection = this.collection.getEntities();
+            // add to the collection, set that data back so keys get added
             collection = collection.concat(array);
             this.collection.setData(collection);
+            //  get main data for later (when filtering etc)
             this.mainArray = this.collection.getEntities();
+            // run orderby, and regroup if there is any
             this.arrayUtils.runOrderbyOn(this.collection.getEntities());
             var untouchedgrouped = this.collection.getEntities();
             if (grouping.length > 0) {
                 var groupedArray = this.arrayUtils.group(untouchedgrouped, grouping, true);
                 this.collection.setData(groupedArray, untouchedgrouped);
             }
+            // trigger grid so it updated view
             this.triggerEvent('collection_updated');
         }
     };
+    /**
+     * Replace collection if array is passed in and rerun sort and groupings
+     * If no data is added it just reruns sorting and grouping
+     * TODO: do we want to also rerun filter if any?
+     *
+     */
     DataSource.prototype.refresh = function (data) {
         if (data) {
+            // if data create new collection and set data to it
             this.collection = new collection_1.Collection(this);
             this.collection.setData(data);
+            //  get main data for later (when filtering etc), then clear current entity
             this.mainArray = this.collection.getEntities();
             this.entity = null;
         }
+        // get current grouping, run orderby, if grouping we also run that
         var grouping = this.arrayUtils.getGrouping();
         this.arrayUtils.runOrderbyOn(this.collection.getEntities());
         if (grouping.length > 0) {
@@ -3040,34 +4045,69 @@ var DataSource = (function () {
             var groupedArray = this.arrayUtils.group(unGroupedArray, grouping, true);
             this.collection.setData(groupedArray, unGroupedArray);
         }
+        // trigger grid so it updates view
         this.triggerEvent('collection_updated');
     };
+    /**
+     * Sets row passed in as current entity
+     *
+     */
     DataSource.prototype.select = function (row) {
+        // get row and set as current entity "entity" of datasource
         this.entity = this.collection.getRow(row);
     };
+    /**
+     * Queries all entities with paramas passed in
+     *
+     */
     DataSource.prototype.query = function (options) {
         if (options) {
+            // query data (using main here, so we query all data set)
             var newArray = this.arrayUtils.query(this.mainArray, options);
+            // set data to our collection
             this.collection.setData(newArray);
         }
         else {
+            // no query passed in we display all
             this.collection.setData(this.mainArray);
         }
+        // run orderby (that will fix grouping if set)
         this.orderBy(null, true);
+        // trigger event so grid updates
         this.triggerEvent('collection_filtered');
     };
+    /**
+     * Sorts the array with params passed in
+     *
+     */
     DataSource.prototype.orderBy = function (attribute, addToCurrentSort) {
+        // get collection (cant use main,,, might be filtered)
         var collection = this.collection.getEntities();
+        // use array helper to sort (takes care of the grouping if set)
         var result = this.arrayUtils.orderBy(collection, attribute, addToCurrentSort);
+        // set data, need both incase we have grouping
         this.collection.setData(result.fixed, result.full);
+        // trigger event to update grid
         this.triggerEvent('collection_sorted');
     };
+    /**
+     * returns current orderBy used
+     *
+     */
     DataSource.prototype.getCurrentOrderBy = function () {
         return this.arrayUtils.getOrderBy();
     };
+    /**
+     * Returns current filter used
+     *
+     */
     DataSource.prototype.getCurrentFilter = function () {
         return this.arrayUtils.getCurrentFilter();
     };
+    /**
+     * Returns current element of row passed in
+     *
+     */
     DataSource.prototype.getElement = function (row) {
         if (row === undefined || row === null) {
             throw new Error('row missing');
@@ -3076,18 +4116,33 @@ var DataSource = (function () {
             return this.collection.getRow(row);
         }
     };
+    /**
+     * Groups the collection with params passed in
+     *
+     */
     DataSource.prototype.group = function (grouping, keepExpanded) {
         var _this = this;
+        // resets current sortclass
         this.arrayUtils.resetSort();
+        // set new sort by grouping
         grouping.forEach(function (group) {
             _this.arrayUtils.setOrderBy(group.field, true);
         });
+        // run sort on displayedCollection
         this.arrayUtils.runOrderbyOn(this.collection.getEntities());
+        // get ungrouped collection
         var ungroupedArray = this.collection.getEntities();
+        // group array
         var groupedArray = this.arrayUtils.group(ungroupedArray, grouping, keepExpanded);
+        // set grouped array to collection
         this.collection.setData(groupedArray, ungroupedArray);
+        // trigger grid to updated view
         this.triggerEvent('collection_grouped');
     };
+    /**
+     * Collapses all groups or just ID passes in
+     *
+     */
     DataSource.prototype.groupCollapse = function (id) {
         var groupedArray = this.arrayUtils.groupCollapse(id);
         var ungroupedArray = this.collection.getEntities();
@@ -3099,6 +4154,10 @@ var DataSource = (function () {
             this.triggerEvent('collection_collapsed_all');
         }
     };
+    /**
+     * Expands all groups or just ID passed in
+     *
+     */
     DataSource.prototype.groupExpand = function (id) {
         var groupedArray = this.arrayUtils.groupExpand(id);
         var ungroupedArray = this.collection.getEntities();
@@ -3110,38 +4169,72 @@ var DataSource = (function () {
             this.triggerEvent('collection_expanded_all');
         }
     };
+    /**
+     * Returns grouping used
+     *
+     */
     DataSource.prototype.getGrouping = function () {
         return this.arrayUtils.getGrouping();
     };
+    /**
+     * Adds blank row to top of diaplayed colelction and updates grid
+     * Todo: custom key will prb break this... need more testing
+     *
+     */
     DataSource.prototype.addBlankRow = function () {
+        // create empty object
         var newElement = {};
+        // add to our main array
         this.mainArray.unshift(newElement);
+        // get the ungrouped array in collection
         var collectionUngrouped = this.collection.getEntities();
+        // get displayed collection
         var displayedCollection = this.collection.getCurrentEntities();
+        // if it does not exsist in old array we skip, else we add
         var index = collectionUngrouped.indexOf(newElement);
         if (index === -1) {
             collectionUngrouped.unshift(newElement);
         }
+        // add to displayed collection
         displayedCollection.unshift(newElement);
+        // set back data to collection
         this.collection.setData(displayedCollection, collectionUngrouped);
+        // set blank as current entity
         this.entity = newElement;
+        // trigger grid to update
         this.triggerEvent('collection_filtered');
     };
+    /**
+     * Added new enity to top of grid, no sorting or grouping after
+     *
+     */
     DataSource.prototype.unshift = function (data) {
         if (data) {
+            // add to main array
             this.mainArray.unshift(data);
+            // get the ungrouped array in collection
             var displayedCollection = this.collection.getEntities();
+            // get displayed collection
             var ungroupedCollection = this.collection.getCurrentEntities();
+            // if it does not exsist in old array we skip, else we add
             var index = displayedCollection.indexOf(data);
             if (index === -1) {
                 displayedCollection.unshift(data);
             }
+            // add to displayed collection
             ungroupedCollection.unshift(data);
+            // set back data to collection
             this.collection.setData(ungroupedCollection, displayedCollection);
+            // set as current entity
             this.entity = data;
+            // trigger grid update
             this.triggerEvent('collection_filtered');
         }
     };
+    /**
+     * Removed rows from displayed collection and returns removed
+     *
+     */
     DataSource.prototype.remove = function (rows) {
         var _this = this;
         var keysToDelete = new Set();
@@ -3169,6 +4262,10 @@ var DataSource = (function () {
         }
         return returnArray;
     };
+    /**
+     * Returns status(lengths) of collection/selection
+     *
+     */
     DataSource.prototype.getCollectionStatus = function () {
         var status = {};
         status.collectionLength = this.mainArray ? this.mainArray.length : 0;
@@ -3176,13 +4273,27 @@ var DataSource = (function () {
         status.selectionLength = this.selection.getLength();
         return status;
     };
+    /**
+     * Sets local compare options to use with sorting
+     * http://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
+     *
+     */
     DataSource.prototype.setLocaleCompare = function (code, options) {
         this.arrayUtils.setLocaleCompare(code, options);
     };
+    /**
+     * Returns row heigth state for vaiable row height, will be called by gridConnector
+     *
+     */
     DataSource.prototype.getRowHeightState = function () {
         return this.collection.getRowHeightState();
     };
+    /**
+     * Returns key of row passed in from displayedCollection
+     *
+     */
     DataSource.prototype.getRowKey = function (row) {
+        // if collection, then get row key
         if (this.collection) {
             return this.collection.getRowKey(row);
         }
@@ -3190,7 +4301,12 @@ var DataSource = (function () {
             return null;
         }
     };
+    /**
+     * Returns all keys of collection
+     *
+     */
     DataSource.prototype.getRowKeys = function () {
+        // if collection then get the keys
         if (this.collection) {
             return this.collection.getRowKeys();
         }
@@ -3198,6 +4314,10 @@ var DataSource = (function () {
             return [];
         }
     };
+    /**
+     * Calls the triggere event with event from selection
+     *
+     */
     DataSource.prototype.selectionEventCallback = function (e) {
         this.triggerEvent(e);
         return true;
@@ -3209,6 +4329,7 @@ exports.DataSource = DataSource;
 });
 ___scope___.file("selection.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var Selection = (function () {
     function Selection(mode) {
         this.mode = mode;
@@ -3217,40 +4338,85 @@ var Selection = (function () {
         this.eventCallBacks = [];
         this.selection = new Set([]);
     }
+    /**
+     * Triggers event and calls listeners
+     *
+     */
     Selection.prototype.triggerEvent = function (event) {
         var _this = this;
+        // call all event listeners
         this.eventCallBacks.forEach(function (FN, i) {
             if (FN !== null) {
                 var alive = FN(event);
                 if (!alive) {
+                    // todo: remove these after
                     _this.eventCallBacks[i] = null;
                 }
             }
         });
     };
+    /**
+     * add event to the selection changes
+     *
+     */
     Selection.prototype.addEventListener = function (callback) {
+        // add key
         this.eventIdCount++;
+        // add to callback queue
         this.eventCallBacks.push(callback);
+        // return ID, so they can remove listnener
         return this.eventIdCount;
     };
+    /**
+     * returns selection size/length
+     *
+     */
     Selection.prototype.getLength = function () {
         return this.selection.size;
     };
+    /**
+     * returns selection ode
+     *
+     */
     Selection.prototype.getMode = function () {
         return this.mode;
     };
+    /**
+     * returns key of row
+     * overridden by default dataosurce to return keys from collection
+     * make private?
+     *
+     */
     Selection.prototype.getRowKey = function (row) {
         return row;
     };
+    /**
+     * retunrs all keys in selection
+     * overridden by default datasource to return its collection keys
+     * make private?
+     *
+     */
     Selection.prototype.getRowKeys = function () {
         return [];
     };
+    /**
+     * function to override
+     *
+     */
     Selection.prototype.overrideGetRowKey = function (fn) {
         this.getRowKey = fn;
     };
+    /**
+     * function to override getRowKeys
+     *
+     */
     Selection.prototype.overrideGetRowKeys = function (fn) {
         this.getRowKeys = fn;
     };
+    /**
+     * tells if row is selected true/false
+     *
+     */
     Selection.prototype.isSelected = function (row) {
         var result = false;
         if (this.selectedRows > 0) {
@@ -3258,16 +4424,28 @@ var Selection = (function () {
         }
         return result;
     };
+    /**
+     * deselcts all rows
+     *
+     */
     Selection.prototype.deSelectAll = function () {
         this.selection.clear();
         this.selectedRows = this.selection.size;
         this.triggerEvent('selection_changed');
     };
+    /**
+     * deselct row passed in
+     *
+     */
     Selection.prototype.deSelect = function (row) {
-        this.selection.delete(this.getRowKey(row));
+        this.selection["delete"](this.getRowKey(row));
         this.selectedRows = this.selection.size;
         this.triggerEvent('selection_changed');
     };
+    /**
+     * select 1 or adds to selection
+     *
+     */
     Selection.prototype.select = function (row, add) {
         switch (this.mode) {
             case 'none':
@@ -3294,6 +4472,10 @@ var Selection = (function () {
         }
         this.triggerEvent('selection_changed');
     };
+    /**
+     * selects range of rows
+     *
+     */
     Selection.prototype.selectRange = function (start, end) {
         if (this.mode === 'multiple') {
             this.selection.clear();
@@ -3304,6 +4486,10 @@ var Selection = (function () {
             this.triggerEvent('selection_changed');
         }
     };
+    /**
+     * retuns selected rows
+     *
+     */
     Selection.prototype.getSelectedRows = function () {
         var _this = this;
         var array = [];
@@ -3317,16 +4503,27 @@ var Selection = (function () {
         }
         return array;
     };
+    /**
+     * sets new selection/selected rows
+     * do we want to have a add params here
+     *
+     */
     Selection.prototype.setSelectedRows = function (newRows) {
         if (this.selectedRows > 0) {
             this.selection.clear();
         }
+        // tslint:disable-next-line:prefer-for-of
         for (var i = 0; i < newRows.length; i++) {
             this.selection.add(this.getRowKey(newRows[i]));
         }
         this.selectedRows = this.selection.size;
         this.triggerEvent('selection_changed');
     };
+    /**
+     * resets selection to 0
+     * its pretty much same as deselect all, remove one ?
+     *
+     */
     Selection.prototype.reset = function () {
         if (this.selectedRows > 0) {
             this.selection.clear();
@@ -3341,50 +4538,84 @@ exports.Selection = Selection;
 });
 ___scope___.file("collection.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var Collection = (function () {
+    /**
+     * Creates an instance of Collection.
+     *
+     */
     function Collection(datasource) {
         this.datasource = datasource;
         this.key = datasource.getKey();
+        // get rowHeight if any
         this.rowHeight = datasource.rowHeight || 25;
+        // get groupHeight if any 
         this.groupHeight = datasource.groupHeight || 25;
+        // some defaults
+        // this contains the displayed including groups
         this.displayedEntities = [];
+        // all keys in displayed
         this.keys = [];
+        // count for setting unique keys, using numbers since I use it do keep entities sorted in inserted order
         this.count = 0;
+        // total length of displayed
         this.length = 0;
+        // this is the ungrouped array (all entities of displayed except the groups)
+        // this is used when grouping the displayed
         this.ungroupedArray = [];
+        // next 3 is variable for setting the correct top etc when using variable row height
         this.rowHeightArray = [];
         this.rowTopArray = [];
         this.rowHeightTotal = 0;
     }
+    /**
+     * Sets data to the collection
+     *
+     */
     Collection.prototype.setData = function (array, ungroupedArray) {
         var _this = this;
+        // clear defaults so they can be set correctly again
         this.displayedEntities = [];
         this.keys = [];
         this.rowHeightArray = [];
         this.rowHeightTotal = 0;
         this.rowTopArray = [];
+        // need a ungrouped collection, so we can use that forward when needing to sort, regroup etc
         this.ungroupedArray = ungroupedArray || array;
+        // get length;
         this.length = array.length;
+        // create entities
         array.forEach(function (rowData) {
+            // if entity does not have key we add one, need this for selection
             if (!rowData[_this.key]) {
                 _this.count++;
                 rowData[_this.key] = _this.count;
             }
+            // if entity is not group we set the keys to our internal key array, if not we set null
             if (!rowData.__group) {
+                // for vairble row height we need to set some defaults the grid can use when scrolling
                 _this.rowHeightArray.push(_this.rowHeight);
                 _this.rowTopArray.push(_this.rowHeightTotal);
                 _this.rowHeightTotal = _this.rowHeightTotal + _this.rowHeight;
+                // push the key we need for selection
                 _this.keys.push(rowData[_this.key]);
             }
             else {
+                // for vairble row height we need to set some defaults the grid can use when scrolling
                 _this.rowHeightArray.push(_this.groupHeight);
                 _this.rowTopArray.push(_this.rowHeightTotal);
                 _this.rowHeightTotal = _this.rowHeightTotal + _this.groupHeight;
+                // set null on groups, we dont want that in selection
                 _this.keys.push(null);
             }
+            // we now set the entity data into our displayed entities
             _this.displayedEntities.push(rowData);
         });
     };
+    /**
+     * Returns rowheigth state, will be needed by the grid code when using varaible row height
+     *
+     */
     Collection.prototype.getRowHeightState = function () {
         return {
             total: this.rowHeightTotal,
@@ -3392,21 +4623,45 @@ var Collection = (function () {
             top: this.rowTopArray
         };
     };
+    /**
+     * Returns the ungrouped array of displayed collection
+     *
+     */
     Collection.prototype.getEntities = function () {
         return this.ungroupedArray;
     };
+    /**
+     * Returns array displayed in collection, including groups
+     *
+     */
     Collection.prototype.getCurrentEntities = function () {
         return this.displayedEntities;
     };
+    /**
+     * Returns key of row number passed in
+     *
+     */
     Collection.prototype.getRowKey = function (row) {
         return this.keys[row];
     };
+    /**
+     * Returns all keys in displayed collection
+     *
+     */
     Collection.prototype.getRowKeys = function () {
         return this.keys;
     };
+    /**
+     * Returns entity of rows in displayed collection
+     *
+     */
     Collection.prototype.getRow = function (row) {
         return this.displayedEntities[row];
     };
+    /**
+     * Return row number of entity passed in as param
+     *
+     */
     Collection.prototype.getRowFromEntity = function (entity) {
         return this.displayedEntities.indexOf(entity);
     };
@@ -3417,15 +4672,24 @@ exports.Collection = Collection;
 });
 ___scope___.file("utils/arrayUtils.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
 var arrayFilter_1 = require("./arrayFilter");
 var arraySort_1 = require("./arraySort");
 var arrayGrouping_1 = require("./arrayGrouping");
+/**
+ * Helper class for calling internal sort, filter and grouping classes
+ *
+ */
 var ArrayUtils = (function () {
     function ArrayUtils() {
         this.arrayFilter = new arrayFilter_1.ArrayFilter();
         this.arraySort = new arraySort_1.ArraySort();
         this.arrayGrouping = new arrayGrouping_1.ArrayGrouping();
     }
+    /**
+     * orderby that also fixes grouping if set before
+     *
+     */
     ArrayUtils.prototype.orderBy = function (collection, attribute, addToCurrentSort) {
         var groupingFields = this.getGrouping().map(function (data) { return data.field; });
         var grouping = this.getGrouping();
@@ -3434,11 +4698,16 @@ var ArrayUtils = (function () {
             full: null
         };
         if (groupingFields.length > 0) {
+            // get last sort
             var lastSort = this.getOrderBy();
+            // reset sort
             this.resetSort();
+            // loop
             var exist_1 = false;
+            // if not adding, create new sort array
             var newSort_1 = [];
             var count_1 = 0;
+            // loop existing
             lastSort.forEach(function (sort) {
                 count_1++;
                 if (groupingFields.indexOf(sort.attribute) !== -1 || addToCurrentSort) {
@@ -3458,12 +4727,17 @@ var ArrayUtils = (function () {
                     }
                 }
             });
+            // set last sort
             this.setLastSort(newSort_1);
+            // if it does not exist, then add
             if (!exist_1 && attribute) {
                 this.setOrderBy(attribute, true);
             }
+            // run orderby
             this.runOrderbyOn(collection);
+            // regroup
             var groupedArray = this.group(collection, grouping, true);
+            // set result
             result = {
                 fixed: groupedArray,
                 full: collection
@@ -3471,6 +4745,7 @@ var ArrayUtils = (function () {
         }
         else {
             if (!attribute) {
+                // no attribute, just reset last sort...
                 var lastSort = this.getOrderBy();
                 this.resetSort();
                 this.setLastSort(lastSort);
@@ -3491,42 +4766,95 @@ var ArrayUtils = (function () {
         }
         return result;
     };
+    /**
+     * calls the group class group function
+     *
+     */
     ArrayUtils.prototype.group = function (array, grouping, keepExpanded) {
         return this.arrayGrouping.group(array, grouping, keepExpanded);
     };
+    /**
+     * returns current grouping
+     *
+     */
     ArrayUtils.prototype.getGrouping = function () {
         return this.arrayGrouping.getGrouping();
     };
+    /**
+     * collapses 1 or all
+     *
+     */
     ArrayUtils.prototype.groupCollapse = function (id) {
         return this.arrayGrouping.collapse(id);
     };
+    /**
+     * expands 1 or all
+     *
+     */
     ArrayUtils.prototype.groupExpand = function (id) {
         return this.arrayGrouping.expand(id);
     };
+    /**
+     * return current orderby used/set
+     *
+     */
     ArrayUtils.prototype.getOrderBy = function () {
         return this.arraySort.getOrderBy();
     };
+    /**
+     * sets last sort used
+     *
+     */
     ArrayUtils.prototype.setLastSort = function (array) {
         this.arraySort.setLastSort(array);
     };
+    /**
+     * sets new orderby that will be next time
+     *
+     */
     ArrayUtils.prototype.setOrderBy = function (attribute, addToCurrentSort) {
         this.arraySort.setOrderBy(attribute, addToCurrentSort);
     };
+    /**
+     * reuns orderby on array passed in
+     *
+     */
     ArrayUtils.prototype.runOrderbyOn = function (array) {
         this.arraySort.runOrderbyOn(array);
     };
+    /**
+     * sesets sorting to nothing
+     *
+     */
     ArrayUtils.prototype.resetSort = function (defaultSortAttribute) {
         this.arraySort.reset(defaultSortAttribute);
     };
+    /**
+     * resets grouping
+     *
+     */
     ArrayUtils.prototype.resetGrouping = function () {
         this.arrayGrouping.reset();
     };
+    /**
+     * returns current filter
+     *
+     */
     ArrayUtils.prototype.getCurrentFilter = function () {
         return this.arrayFilter.getLastFilter();
     };
+    /**
+     * queries and returns new array
+     *
+     */
     ArrayUtils.prototype.query = function (array, params) {
         return this.arrayFilter.runQueryOn(array, params);
     };
+    /**
+     * sets local compare needed to sort language like german and norwegian
+     * Needed since you might need local sorting on browser/os set to english local
+     *
+     */
     ArrayUtils.prototype.setLocaleCompare = function (code, options) {
         this.arraySort.setLocaleCompare(code, options);
     };
@@ -3537,6 +4865,11 @@ exports.ArrayUtils = ArrayUtils;
 });
 ___scope___.file("utils/arrayFilter.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * filters the array
+ *
+ */
 var ArrayFilter = (function () {
     function ArrayFilter() {
         this.filterOperators = {
@@ -3549,30 +4882,46 @@ var ArrayFilter = (function () {
             '!=': 7,
             '!*': 8,
             '*=': 9,
-            '=*': 10
+            '=*': 10 // end with
         };
         this.lastFilter = [];
     }
+    /**
+     * gets operator number from class
+     *
+     */
     ArrayFilter.prototype.getOperatorNo = function (val) {
         return this.filterOperators[val];
     };
+    /**
+     * returns last filter set
+     *
+     */
     ArrayFilter.prototype.getLastFilter = function () {
         return this.lastFilter;
     };
+    /**
+     * runs query on the array
+     *
+     */
     ArrayFilter.prototype.runQueryOn = function (objArray, ObjFilter) {
         var _this = this;
         this.lastFilter = ObjFilter;
         var resultArray = objArray.filter(function (data) {
+            // lets have true as default, so all that should not be there we set false..
             var result = true;
             ObjFilter.forEach(function (x) {
+                // vars
                 var rowValue;
                 var filterValue;
                 var filterOperator = _this.getOperatorNo(x.operator);
                 var newFilterOperator;
+                // helper for boolean
                 var typeBool = {
-                    true: true,
-                    false: false
+                    "true": true,
+                    "false": false
                 };
+                // set defult type
                 var type;
                 try {
                     type = typeof (data[x.attribute]);
@@ -3580,6 +4929,7 @@ var ArrayFilter = (function () {
                 catch (e) {
                     type = 'string';
                 }
+                // lets set som defaults
                 switch (type) {
                     case 'number':
                         rowValue = data[x.attribute];
@@ -3594,18 +4944,24 @@ var ArrayFilter = (function () {
                         filterValue = x.value.toLowerCase();
                         filterOperator = filterOperator || 9;
                         newFilterOperator = filterOperator;
+                        // todo: add more options here and replace with a switch.., also
+                        // if filter operator is BEGIN WITH
                         if (x.value.charAt(0) === '*' && filterOperator === 9) {
                             newFilterOperator = 6;
                             filterValue = filterValue.substr(1, filterValue.length);
                         }
+                        // if filter operator is EQUAL TO
+                        // wildcard first = end with
                         if (x.value.charAt(0) === '*' && filterOperator === 1) {
                             newFilterOperator = 10;
                             filterValue = filterValue.substr(1, filterValue.length);
                         }
+                        // wildcard end and first = contains
                         if (x.value.charAt(x.value.length - 1) === '*' && filterOperator === 1 && newFilterOperator === 10) {
                             newFilterOperator = 6;
                             filterValue = filterValue.substr(0, filterValue.length - 1);
                         }
+                        // begin with since wildcard is in the end
                         if (x.value.charAt(x.value.length - 1) === '*'
                             && filterOperator === 1
                             && newFilterOperator !== 10
@@ -3613,6 +4969,7 @@ var ArrayFilter = (function () {
                             newFilterOperator = 9;
                             filterValue = filterValue.substr(0, filterValue.length - 1);
                         }
+                        // set the filteroperator from new if changed
                         if (filterOperator !== newFilterOperator) {
                             filterOperator = newFilterOperator;
                         }
@@ -3624,10 +4981,12 @@ var ArrayFilter = (function () {
                         break;
                     case 'object':
                         rowValue = data[x.attribute].toISOString();
-                        filterValue = new Date(x.value).toISOString();
+                        filterValue = new Date(x.value).toISOString(); // todo, this needs to be better...
                         filterOperator = filterOperator || 2;
                         break;
                     default:
+                        // todo: take the stuff under equal to and put in a function 
+                        // and also call i from here.. or just make it fail?
                         try {
                             rowValue = data[x.attribute].toLowerCase();
                         }
@@ -3643,6 +5002,7 @@ var ArrayFilter = (function () {
                         filterOperator = filterOperator || 1;
                         break;
                 }
+                // filter from what operator used
                 switch (filterOperator) {
                     case 1:
                         if (rowValue !== filterValue) {
@@ -3704,7 +5064,7 @@ var ArrayFilter = (function () {
                         result = true;
                     }
                 }
-            });
+            }); // end foreach obj
             return result;
         });
         return resultArray;
@@ -3716,6 +5076,12 @@ exports.ArrayFilter = ArrayFilter;
 });
 ___scope___.file("utils/arraySort.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * This does all the sorting on the array passed in
+ * Used by default datasource
+ *
+ */
 var ArraySort = (function () {
     function ArraySort() {
         this.lastSort = [];
@@ -3723,10 +5089,19 @@ var ArraySort = (function () {
         this.localeCompareCode = null;
         this.localeCompareOptions = { sensitivity: 'base' };
     }
+    /**
+     * Sets localCompare
+     *
+     */
     ArraySort.prototype.setLocaleCompare = function (code, options) {
         this.localeCompareCode = code ? code : null;
         this.localeCompareOptions = options ? options : { sensitivity: 'base' };
     };
+    /**
+     * Resets sort
+     * if attribute is passed it sets that as default, this way first filter wont be messed up
+     *
+     */
     ArraySort.prototype.reset = function (defaultSortAttribute) {
         if (defaultSortAttribute) {
             this.lastSort = [{ attribute: defaultSortAttribute, asc: true, no: 0 }];
@@ -3737,10 +5112,20 @@ var ArraySort = (function () {
             this.curSort = [];
         }
     };
+    /**
+     * Sets last sort
+     * todo: why do I have this?
+     *
+     */
     ArraySort.prototype.setLastSort = function (array) {
         this.lastSort = array;
         this.curSort = array;
     };
+    /**
+     * Sets the sort order to be used next sort Runs
+     * any = string
+     *
+     */
     ArraySort.prototype.setOrderBy = function (param, add) {
         var sort;
         var useSetValue = false;
@@ -3757,9 +5142,12 @@ var ArraySort = (function () {
             };
             useSetValue = true;
         }
+        // do we add or is it the first one
         if (add && this.lastSort.length > 0) {
+            // its adding, so lets get last one
             this.curSort = this.lastSort;
             var exist_1 = false;
+            // loop to se if it exist from before
             this.curSort.forEach(function (x) {
                 if (!useSetValue) {
                     if (x.attribute === sort.attribute) {
@@ -3768,6 +5156,7 @@ var ArraySort = (function () {
                     }
                 }
             });
+            // if it dont exist we add it, else there isnt anythin else to do for now
             if (!exist_1) {
                 this.curSort.push(sort);
                 this.curSort[this.curSort.length - 1].no = this.curSort.length;
@@ -3775,6 +5164,7 @@ var ArraySort = (function () {
             this.lastSort = this.curSort;
         }
         else {
+            // if not adding, just set it
             this.curSort = [sort];
             this.curSort[0].no = 1;
             if (this.lastSort[0]) {
@@ -3789,9 +5179,17 @@ var ArraySort = (function () {
             this.lastSort = this.curSort;
         }
     };
+    /**
+     * Returns current sort by
+     *
+     */
     ArraySort.prototype.getOrderBy = function () {
         return this.curSort;
     };
+    /**
+     * Get value from deeper inside the object, this will need a lot more work, and filter does not support it
+     *
+     */
     ArraySort.prototype.getValue = function (attribute, obj) {
         var arr = attribute.split('.');
         var tempValue = Infinity;
@@ -3809,15 +5207,23 @@ var ArraySort = (function () {
         }
         return tempValue;
     };
+    /**
+     *  Runs sort on array passed in with params set earlier
+     *
+     */
     ArraySort.prototype.runOrderbyOn = function (array) {
         var _this = this;
+        // super simple for now.. atleast I have som form for sort
         var thisSort = this.getOrderBy();
+        // this is mix from different sources... from what I can tell it works now
         array.sort(function (obj1, obj2) {
             var result = 0;
             for (var i = 0; i < thisSort.length && result === 0; ++i) {
+                // loop until all are sorted
                 var currentObj = thisSort[i];
                 var v1 = _this.getValue(currentObj.attribute, obj1);
                 var v2 = _this.getValue(currentObj.attribute, obj2);
+                // compares with locale
                 var getLocaleCompareResult = function (x1, x2) {
                     var resultLocale = null;
                     if (_this.localeCompareCode) {
@@ -3830,6 +5236,7 @@ var ArraySort = (function () {
                 };
                 if (v1 !== v2) {
                     if (currentObj.asc) {
+                        // ASC
                         if (typeof v1 === 'string' && typeof v1 === 'string') {
                             if (getLocaleCompareResult(v1, v2) < 0 &&
                                 getLocaleCompareResult(v1, v2) !== 0) {
@@ -3871,6 +5278,7 @@ var ArraySort = (function () {
             }
             return result;
         });
+        // set current sort as last sort that was used
         this.lastSort = this.getOrderBy().slice(0);
     };
     return ArraySort;
@@ -3880,36 +5288,57 @@ exports.ArraySort = ArraySort;
 });
 ___scope___.file("utils/arrayGrouping.js", function(exports, require, module, __filename, __dirname){ 
 
+"use strict";
+/**
+ * This takes care the generating the flat array the grid can use for grouping
+ *
+ */
 var ArrayGrouping = (function () {
     function ArrayGrouping() {
         this.grouping = [];
         this.expanded = new Set([]);
     }
+    /**
+     * todo description
+     *
+     */
     ArrayGrouping.prototype.reset = function () {
         this.groups = [];
         this.grouping = [];
         this.expanded = new Set([]);
     };
+    /**
+     * todo description
+     *
+     */
     ArrayGrouping.prototype.group = function (arrayToGroup, grouping, keepExpanded) {
         var _this = this;
+        // if grouping
         if (grouping.length > 0) {
+            // temp holder for groups as we create them
             if (!keepExpanded) {
                 this.expanded = new Set([]);
             }
+            // variable to hold our groups
             var groups_1 = [];
             grouping.forEach(function (groupBy, groupNo) {
                 if (groupNo === 0) {
+                    // create main group and add to groups array
                     var mainGroup = _this.groupMain(arrayToGroup, groupBy.field, groupNo);
                     groups_1.push(mainGroup);
                 }
                 else {
+                    // get last group created, and group children
                     var childGroupArray = groups_1[groups_1.length - 1];
                     var newSubGroup = _this.groupChildren(childGroupArray, groupBy.field, groupNo);
                     groups_1.push(newSubGroup);
                 }
             });
+            // set to our class wo we have it for later
             this.groups = groups_1;
+            // set to clas so we can get it later
             this.grouping = grouping;
+            // do we want what was expanded still to be expanded, if so just return firts grouping
             if (!keepExpanded) {
                 return groups_1[0];
             }
@@ -3918,19 +5347,29 @@ var ArrayGrouping = (function () {
             }
         }
         else {
+            // set all rows to 0 grouping
             arrayToGroup.forEach(function (row) {
                 row.__groupLvl = 0;
             });
+            // clear prev grouping
             this.grouping = [];
             return arrayToGroup;
         }
     };
+    /**
+     * returns current grouping
+     *
+     */
     ArrayGrouping.prototype.getGrouping = function () {
         return this.grouping;
     };
+    /**
+     * expands 1 group by id passed or all groups if no params
+     *
+     */
     ArrayGrouping.prototype.expand = function (id, array) {
         var _this = this;
-        var all = id ? false : true;
+        var all = id ? false : true; // if no id, then all
         if (!id) {
             if (array) {
                 all = false;
@@ -3942,6 +5381,7 @@ var ArrayGrouping = (function () {
         var subGroup;
         var collection = [];
         var mainGroups = this.groups[0];
+        // lopp children
         subGroup = function (g) {
             g.__groupChildren.forEach(function (sg) {
                 collection.push(sg);
@@ -3957,10 +5397,12 @@ var ArrayGrouping = (function () {
                         }
                         break;
                     default:
+                        // need anything here ?
                         break;
                 }
             });
         };
+        // loop main groups
         mainGroups.forEach(function (g) {
             collection.push(g);
             switch (true) {
@@ -3975,31 +5417,37 @@ var ArrayGrouping = (function () {
                     }
                     break;
                 default:
+                    // need anything here ?
                     break;
             }
         });
         return collection;
     };
+    /**
+     * collapses 1 by id or all if no params is passed
+     *
+     */
     ArrayGrouping.prototype.collapse = function (id) {
         var _this = this;
-        var all = id ? false : true;
+        var all = id ? false : true; // if no id, then all
         id = id === undefined ? null : id;
         var subGroup;
         var collection = [];
         var mainGroups = this.groups[0];
+        // lopp children
         subGroup = function (g) {
             g.__groupChildren.forEach(function (sg) {
                 switch (true) {
                     case all:
                         if (sg.__groupChildren) {
                             sg.__groupExpanded = false;
-                            _this.expanded.delete(sg.__groupID);
+                            _this.expanded["delete"](sg.__groupID);
                             subGroup(sg);
                         }
                         break;
                     case sg.__groupID === id:
                         collection.push(sg);
-                        _this.expanded.delete(sg.__groupID);
+                        _this.expanded["delete"](sg.__groupID);
                         sg.__groupExpanded = false;
                         break;
                     default:
@@ -4011,19 +5459,20 @@ var ArrayGrouping = (function () {
                 }
             });
         };
+        // loop main groups
         mainGroups.forEach(function (g) {
             collection.push(g);
             switch (true) {
                 case all:
                     g.__groupExpanded = false;
-                    _this.expanded.delete(g.__groupID);
+                    _this.expanded["delete"](g.__groupID);
                     if (g.__groupChildren) {
                         subGroup(g);
                     }
                     break;
                 case g.__groupID === id:
                     g.__groupExpanded = false;
-                    _this.expanded.delete(g.__groupID);
+                    _this.expanded["delete"](g.__groupID);
                     break;
                 default:
                     if (g.__groupChildren && g.__groupExpanded) {
@@ -4034,10 +5483,15 @@ var ArrayGrouping = (function () {
         });
         return collection;
     };
+    /**
+     * creates main grouping
+     *
+     */
     ArrayGrouping.prototype.groupMain = function (array, groupBy, groupNo) {
         var tempGroupArray = [];
         var curGroup = {};
         var tempValue = null;
+        // first level, here we use array
         array.forEach(function (element) {
             var gidm = element[groupBy];
             gidm = typeof gidm === 'boolean' ? gidm.toString() : gidm;
@@ -4064,11 +5518,17 @@ var ArrayGrouping = (function () {
         });
         return tempGroupArray;
     };
+    /**
+     * loops the children of parant and creates grouping, then loops the cridren of that etc
+     *
+     */
     ArrayGrouping.prototype.groupChildren = function (childGroupArray, groupBy, groupNo) {
         var tempGroupArray = [];
         var curGroup = {};
+        // loop groups
         childGroupArray.forEach(function (element) {
             var tempValue = null;
+            // loop children
             var rebuiltChildrenArray = [];
             element.__groupChildren.forEach(function (child) {
                 if (child[groupBy] !== tempValue) {
@@ -4094,6 +5554,7 @@ var ArrayGrouping = (function () {
                     curGroup.__groupTotal++;
                 }
             });
+            // replace children with new groups
             element.__groupChildren = rebuiltChildrenArray;
         });
         return tempGroupArray;
@@ -4108,31 +5569,49 @@ ___scope___.file("grid/v-grid.html", function(exports, require, module, __filena
 module.exports.default =  "<template>\r\n  <!--\r\n    get the internal css, \r\n    todo: we might want to be able to replace this\r\n  -->\r\n  <require from=\"./styles/main-element-tags.css\"></require>\r\n  <require from=\"./styles/main-elements.css\"></require>\r\n  <require from=\"./styles/contextmenu.css\"></require>\r\n  <require from=\"./styles/dragAndResize.css\"></require>\r\n  <require from=\"./styles/loader.css\"></require>\r\n  <require from=\"./styles/icons.css\"></require>\r\n  <require from=\"./styles/grouping.css\"></require>\r\n  <require from=\"./styles/cellsAndLabels.css\"></require>\r\n  <content>\r\n  </content>\r\n</template>\r\n"
 });
 ___scope___.file("grid/attributes/v-changed.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+// todo: look at adding option to disable this ?
+/**
+ * Custom attribute "v-onchange"
+ * Only triggers new data update on row when change event happen
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridAttributesOnChange = (function () {
     function VGridAttributesOnChange(element, vGrid) {
         this.element = element;
         this.vGrid = vGrid;
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributesOnChange.prototype.attached = function () {
         if (!this.element.onchange) {
             this.element.onchange = this.onChanged.bind(this);
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesOnChange.prototype.onChanged = function () {
         this.vGrid.controller.rowDataBinder.rebindRowNo(this.bindingContext.row);
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesOnChange.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
@@ -4141,36 +5620,49 @@ var VGridAttributesOnChange = (function () {
 }());
 VGridAttributesOnChange = __decorate([
     aurelia_framework_1.customAttribute('v-onchange'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [HTMLElement, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributesOnChange);
 exports.VGridAttributesOnChange = VGridAttributesOnChange;
 
 });
 ___scope___.file("grid/attributes/v-data-handler.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+// todo: look at adding option to disable this ?
+/**
+ * Custom attribute "v-onchange"
+ * Only triggers new data update on row when change event happen
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridAttributesDataHandler = (function () {
     function VGridAttributesDataHandler(element, vGrid) {
         this.isSet = false;
         this.element = element;
         this.vGrid = vGrid;
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributesDataHandler.prototype.attached = function () {
         this.element.onchange = this.onChanged.bind(this);
         this.element.onfocus = this.onFocus.bind(this);
         this.element.onblur = this.onBlur.bind(this);
     };
+    /**
+     * value changed handler
+     *
+     */
     VGridAttributesDataHandler.prototype.valueChanged = function (newValue) {
         if (this.isSet) {
             var checkValue = this.editFormater.toView(newValue);
@@ -4182,23 +5674,39 @@ var VGridAttributesDataHandler = (function () {
             this.element.value = this.displayFormater.toView(newValue);
         }
     };
+    /**
+     * onfocus event handler
+     *
+     */
     VGridAttributesDataHandler.prototype.onFocus = function () {
         this.isSet = true;
         this.element.value = this.editFormater.toView(this.value);
         this.tempValue = this.element.value;
     };
+    /**
+     * onblur event handler
+     *
+     */
     VGridAttributesDataHandler.prototype.onBlur = function () {
         if (this.tempValue === this.element.value) {
             this.onChanged();
         }
         this.isSet = false;
     };
+    /**
+     * onchange event handler
+     *
+     */
     VGridAttributesDataHandler.prototype.onChanged = function () {
         this.value = this.editFormater.fromView(this.element.value);
         this.bindingContext.rowRef[this.field] = this.value;
         this.element.value = this.displayFormater.toView(this.value);
         this.vGrid.controller.rowDataBinder.rebindRowNo(this.bindingContext.row);
     };
+    /**
+     * when attributes binds, get valueconverters and set value
+     *
+     */
     VGridAttributesDataHandler.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
@@ -4206,6 +5714,10 @@ var VGridAttributesDataHandler = (function () {
         this.editFormater = this.valueConverters(this.edit);
         this.element.value = this.displayFormater.toView(this.value);
     };
+    /**
+     * get valueConverters and bind to grid resources
+     *
+     */
     VGridAttributesDataHandler.prototype.valueConverters = function (value) {
         var valueConverter = this.vGrid.viewResources.getValueConverter.bind(this.vGrid.viewResources);
         return valueConverter(value);
@@ -4213,93 +5725,122 @@ var VGridAttributesDataHandler = (function () {
     return VGridAttributesDataHandler;
 }());
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesDataHandler.prototype, "field", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesDataHandler.prototype, "field");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesDataHandler.prototype, "value", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesDataHandler.prototype, "value");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesDataHandler.prototype, "display", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesDataHandler.prototype, "display");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesDataHandler.prototype, "edit", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesDataHandler.prototype, "edit");
 VGridAttributesDataHandler = __decorate([
     aurelia_framework_1.customAttribute('v-data-handler'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [HTMLElement, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributesDataHandler);
 exports.VGridAttributesDataHandler = VGridAttributesDataHandler;
 
 });
 ___scope___.file("grid/attributes/v-drag-drop-col.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+/**
+ * Custom attribute "v-drag-drop-col"
+ * Logic behind dragdrop, & enables grouping
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridDragDropCol = (function () {
     function VGridDragDropCol(element, vGrid) {
+        // get contexts
         this.vGrid = vGrid;
         this.vGridElement = vGrid.element;
         this.controller = vGrid.controller;
         this.groupingElements = vGrid.groupingElements;
+        // get our shared context between our dragdrop attributes, holds data of the dragged one
         this.sharedContext = vGrid.dragDropAttributeSharedContext;
         this.element = element;
         this.column = this.element;
         this.entered = null;
         this.curColNo = null;
     }
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
+        // set binded context to our functions, wont be able to remove if binded during setting event
         this.onDragstartBinded = this.onDragstart.bind(this);
         this.onDragenterBinded = this.onDragenter.bind(this);
         this.onDragoverBinded = this.onDragover.bind(this);
         this.onDragendBinded = this.onDragend.bind(this);
         this.onDragOutSideBinded = this.onDragOutSide.bind(this);
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.unbind = function () {
+        // todo remove event listeners
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.detached = function () {
+        //  console.log("detached")
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.attached = function () {
         var _this = this;
+        // get our target data (this case: this actual column..)
         var result = this.getTargetData(this.column);
         if (result.ok && !result.panel) {
+            // get column data
             this.column = result.target;
             this.colType = this.column.attributes.getNamedItem('avg-type').value;
             this.colNo = parseInt(this.column.attributes.getNamedItem('avg-config-col').value, 10);
             this.context = this.vGrid.columnBindingContext['setup' + this.colType][this.colNo];
             this.columnsArray = this.vGrid.columnBindingContext['setup' + this.colType];
+            // when user starts to drag
             this.element.addEventListener('mousedown', this.onDragstartBinded);
+            // why target ? bacuse thats the entire column object no mather what user have inside
             result.target.addEventListener('mouseenter', this.onDragenterBinded);
         }
         if (result.ok && result.target.nodeName === 'AVG-TOP-PANEL') {
+            // if panel we need to listen and do some stuff differently
             this.isPanel = true;
             this.sharedContext.panel = result.target;
+            // if we leave, remve group
             result.target.onmouseleave = function () {
                 if (_this.sharedContext.dragging && _this.sharedContext.title && _this.sharedContext.field) {
                     _this.groupingElements.removeGroup('');
                 }
             };
+            // if enter and dragging, add grouping
             result.target.onmouseenter = function () {
                 if (_this.sharedContext.dragging && _this.sharedContext.title && _this.sharedContext.field) {
                     _this.groupingElements.addGroup(_this.sharedContext.title, _this.sharedContext.field);
                     _this.sharedContext.lastTarget = result.target;
                 }
             };
+            // if mouse up during dragging we grop, if group ios added
             result.target.onmouseup = function () {
                 if (_this.sharedContext.dragging && _this.sharedContext.title && _this.sharedContext.field) {
                     _this.groupingElements.addToGrouping();
@@ -4307,23 +5848,37 @@ var VGridDragDropCol = (function () {
             };
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.createDragElement = function () {
+        // just creates the element we drag
         this.dragColumnBlock = document.createElement('div');
         this.dragColumnBlock.classList.add(this.vGrid.attTheme);
         this.dragColumnBlock.classList.add('avg-drag');
-        this.dragColumnBlock.style.top = -1200 + 'px';
+        this.dragColumnBlock.style.top = -1200 + 'px'; // hide it
         this.dragColumnBlock.style.left = -1200 + 'px';
         document.body.appendChild(this.dragColumnBlock);
+        // <- maybe do something here, use value for custom html?
         this.dragColumnBlock.innerHTML = this.title || this.vGrid.colConfig[this.colNo].colHeaderName;
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.onDragstart = function () {
         var _this = this;
+        // register mouseup, so we can exit
         document.addEventListener('mouseup', this.onDragendBinded);
         this.vGridElement.addEventListener('mouseleave', this.onDragOutSideBinded);
         this.createDragElement();
+        // want to delay this a little
         this.mouseMoveTimer = setTimeout(function () {
+            // create our element we drag with upo
             document.addEventListener('mousemove', _this.onDragoverBinded, false);
         }, 300);
+        // set our shared resources for all the drag drop so we know them when we enter another
         this.sharedContext.dragging = true;
         this.sharedContext.colType = this.colType;
         this.sharedContext.context = this.context;
@@ -4332,11 +5887,16 @@ var VGridDragDropCol = (function () {
         this.sharedContext.columnsArray = this.columnsArray;
         this.sharedContext.title = this.title;
         this.sharedContext.field = this.field;
+        // build up new array we will use for setting new left
         this.sharedContext.columnsArraySorted = [];
         this.sharedContext.columnsArray.forEach(function (x) {
             _this.sharedContext.columnsArraySorted.push(x);
         });
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.onDragOutSide = function (event) {
         if (this.sharedContext.dragging) {
             if (event.layerX < 0) {
@@ -4367,12 +5927,22 @@ var VGridDragDropCol = (function () {
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.onDragenter = function (event) {
+        // event.preventDefault();
         if (this.sharedContext.dragging) {
+            // get results
             var result = this.getTargetData(event.target);
+            // if ok, and AVG-COL
             if (result.target.nodeName === 'AVG-COL' && result.ok && this.sharedContext.lastTarget !== result.target) {
+                // set last target
                 this.sharedContext.lastTarget = result.target;
+                // if fifferent column, and same type (main/left/right) 
                 if (result.colNo !== this.sharedContext.colNo && result.colType === this.sharedContext.colType) {
+                    // get the left
                     var newLeft = this.sharedContext.columnsArray[result.colNo].left;
                     var oldLeft = this.sharedContext.columnsArray[this.sharedContext.colNo].left;
                     if (newLeft < oldLeft) {
@@ -4383,9 +5953,11 @@ var VGridDragDropCol = (function () {
                         this.sharedContext.columnsArray[this.sharedContext.colNo].left = newLeft;
                         this.sharedContext.columnsArray[result.colNo].left = newLeft - 1;
                     }
+                    // sort columns
                     this.sharedContext.columnsArraySorted.sort(function (a, b) {
                         return a.left - b.left;
                     });
+                    // loop and set left/right  
                     var appendValue_1 = 0;
                     this.sharedContext.columnsArraySorted.forEach(function (x) {
                         if (x.show) {
@@ -4394,39 +5966,61 @@ var VGridDragDropCol = (function () {
                         }
                     });
                 }
+                // if coltype and colno is diffent
                 if (result.colNo !== this.sharedContext.colNo && result.colType !== this.sharedContext.colType) {
                     this.switchColumns(result);
                 }
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.onDragover = function (event) {
+        // setting position of out dragBlock
         if (this.dragColumnBlock) {
             this.dragColumnBlock.style.top = event.clientY + 'px';
             this.dragColumnBlock.style.left = event.clientX + 'px';
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.onDragend = function () {
+        // clear mosuemove timer
         clearTimeout(this.mouseMoveTimer);
+        // set dragging to false
         this.sharedContext.dragging = false;
+        // remove out listneres
         document.removeEventListener('mouseup', this.onDragendBinded);
         document.removeEventListener('mousemove', this.onDragoverBinded);
         this.vGridElement.removeEventListener('mouseleave', this.onDragOutSideBinded);
+        // reset blocks
         this.sharedContext.lastTarget = null;
+        // this.sharedContext.group = null;
+        // if drag column then remove
         if (this.dragColumnBlock) {
-            var parent_1 = this.dragColumnBlock.parentNode;
-            if (parent_1) {
-                parent_1.removeChild(this.dragColumnBlock);
+            var parent = this.dragColumnBlock.parentNode;
+            if (parent) {
+                parent.removeChild(this.dragColumnBlock);
                 this.dragColumnBlock = null;
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.switchColumns = function (result) {
         var _this = this;
+        // get vars 
         var width;
         var newColType = result.colType;
         var oldColType = this.sharedContext.colType;
         var heightAndWidths = this.vGrid.htmlHeightWidth;
+        // chack type is one of the ones we handle
         switch (true) {
             case newColType === 'left' && oldColType === 'main':
             case newColType === 'main' && oldColType === 'left':
@@ -4434,11 +6028,15 @@ var VGridDragDropCol = (function () {
             case newColType === 'main' && oldColType === 'right':
             case newColType === 'left' && oldColType === 'right':
             case newColType === 'right' && oldColType === 'left':
+                // hide column
                 this.sharedContext.columnsArray[this.sharedContext.colNo].show = false;
+                // get to width of the column we have
                 width = this.sharedContext.columnsArray[this.sharedContext.colNo].width;
+                // sort array (I prb can remove?)
                 this.sharedContext.columnsArraySorted.sort(function (a, b) {
                     return a.left - b.left;
                 });
+                // loop and set left/right  
                 var appendValue_2 = 0;
                 this.sharedContext.columnsArraySorted.forEach(function (x) {
                     if (x.show) {
@@ -4446,17 +6044,23 @@ var VGridDragDropCol = (function () {
                         appendValue_2 = appendValue_2 + x.width;
                     }
                 });
+                // set new col type
                 this.sharedContext.colType = result.colType;
                 this.sharedContext.columnsArray = this.vGrid.columnBindingContext['setup' + result.colType];
+                // show column
                 this.sharedContext.columnsArray[this.sharedContext.colNo].show = true;
+                // set correct width
                 this.sharedContext.columnsArray[this.sharedContext.colNo].width = width;
+                // set new shared column context
                 this.sharedContext.columnsArraySorted = [];
                 this.sharedContext.columnsArray.forEach(function (x) {
                     _this.sharedContext.columnsArraySorted.push(x);
                 });
+                // sort array (I prb can remove?)
                 this.sharedContext.columnsArraySorted.sort(function (a, b) {
                     return a.left - b.left;
                 });
+                // loop and set left/right  
                 appendValue_2 = 0;
                 this.sharedContext.columnsArraySorted.forEach(function (x) {
                     if (x.show) {
@@ -4466,8 +6070,10 @@ var VGridDragDropCol = (function () {
                 });
                 break;
             default:
+                // console.log("Todo: Move to :" + newColType + ", from:" + oldColType);
                 break;
         }
+        // a lot of repeated code... throw this in htmlHeightWidths class, so I can call it from somewhere else too?
         if (newColType === 'left' && oldColType === 'main') {
             heightAndWidths.avgContentMainScroll_Width = heightAndWidths.avgContentMainScroll_Width - width;
             heightAndWidths.avgContentHhandleScroll_Width = heightAndWidths.avgContentHhandleScroll_Width - width;
@@ -4529,20 +6135,29 @@ var VGridDragDropCol = (function () {
             heightAndWidths.avgContentHhandle_Left = heightAndWidths.avgContentHhandle_Left - width;
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridDragDropCol.prototype.getTargetData = function (curTarget) {
+        // set variables
         var draggableTarget = null;
         var count = 0;
         var exit = true;
         var isOk = false;
         while (exit) {
+            // have count, so we dont end up locking browser if anything goes really bad
             count++;
+            // if we dont have target, fail!
             if (!curTarget.parentNode) {
                 exit = false;
             }
             else {
+                // if draggable, and not set, then we set it
                 if (curTarget.draggable === true && draggableTarget === null) {
                     draggableTarget = curTarget;
                 }
+                // check if it contains our elements, or continue to next parentNode
                 switch (true) {
                     case curTarget.nodeName === 'AVG-COL':
                     case curTarget.nodeName === 'AVG-TOP-PANEL':
@@ -4554,6 +6169,7 @@ var VGridDragDropCol = (function () {
                         break;
                 }
             }
+            // 20 times, we failed!
             if (count > 10) {
                 exit = false;
             }
@@ -4563,6 +6179,7 @@ var VGridDragDropCol = (function () {
         var curContext = null;
         var curColumnsArray = null;
         var isPanel = false;
+        // if ok, get variables we need
         if (isOk && curTarget.nodeName === 'AVG-COL') {
             curColType = curTarget.attributes.getNamedItem('avg-type').value;
             curColNo = parseInt(curTarget.attributes.getNamedItem('avg-config-col').value, 10);
@@ -4572,6 +6189,7 @@ var VGridDragDropCol = (function () {
         if (isOk && curTarget.nodeName === 'AVG-TOP-PANEL') {
             isPanel = true;
         }
+        // return super object :-)
         return {
             draggable: draggableTarget,
             ok: isOk,
@@ -4586,44 +6204,53 @@ var VGridDragDropCol = (function () {
     return VGridDragDropCol;
 }());
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridDragDropCol.prototype, "title", void 0);
+    aurelia_framework_1.bindable
+], VGridDragDropCol.prototype, "title");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridDragDropCol.prototype, "field", void 0);
+    aurelia_framework_1.bindable
+], VGridDragDropCol.prototype, "field");
 VGridDragDropCol = __decorate([
     aurelia_framework_1.customAttribute('v-drag-drop-col'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridDragDropCol);
 exports.VGridDragDropCol = VGridDragDropCol;
 
 });
 ___scope___.file("grid/attributes/v-filter-observer.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+/**
+ * Custom attribute "v-filter-observer"
+ * Alternative filter that listen for value changed
+ * Can be used with custom html
+ *
+ */
 var VGridAttributesFilterObserver = (function () {
     function VGridAttributesFilterObserver(element, vGrid) {
         this.vGrid = vGrid;
         this.element = element;
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilterObserver.prototype.valueChanged = function (newValue) {
         if (this.attribute && newValue) {
             this.updateFilter();
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilterObserver.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
@@ -4633,19 +6260,29 @@ var VGridAttributesFilterObserver = (function () {
         this.valueFormater = valueConverter || null;
         this.state = 0;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilterObserver.prototype.getValue = function () {
         return this.valueFormater ? this.valueFormater.fromView(this.value) : this.value;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilterObserver.prototype.updateFilter = function () {
         var _this = this;
         var curFilter = this.vGrid.attGridConnector.getCurrentFilter();
         var filterIndex = -1;
+        // get index of filter
         curFilter.forEach(function (filter, index) {
             if (filter.attribute === _this.attribute) {
                 filterIndex = index;
             }
         });
         if (filterIndex !== -1) {
+            // we found a filter, lets update
             if (this.getValue() === '') {
                 curFilter.splice(filterIndex, 1);
             }
@@ -4655,6 +6292,7 @@ var VGridAttributesFilterObserver = (function () {
             }
         }
         else {
+            // we didnt find filter, lets add one
             if (this.getValue() !== '') {
                 curFilter.push({
                     attribute: this.attribute,
@@ -4665,6 +6303,10 @@ var VGridAttributesFilterObserver = (function () {
         }
         this.vGrid.attGridConnector.query(this.vGrid.attGridConnector.getCurrentFilter());
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilterObserver.prototype.valueConverters = function (value) {
         var valueConverter = this.vGrid.viewResources.getValueConverter.bind(this.vGrid.viewResources);
         return valueConverter(value);
@@ -4672,50 +6314,58 @@ var VGridAttributesFilterObserver = (function () {
     return VGridAttributesFilterObserver;
 }());
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilterObserver.prototype, "field", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilterObserver.prototype, "field");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilterObserver.prototype, "operator", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilterObserver.prototype, "operator");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilterObserver.prototype, "converter", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilterObserver.prototype, "converter");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilterObserver.prototype, "value", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilterObserver.prototype, "value");
 VGridAttributesFilterObserver = __decorate([
     aurelia_framework_1.customAttribute('v-filter-observer'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [HTMLElement, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributesFilterObserver);
 exports.VGridAttributesFilterObserver = VGridAttributesFilterObserver;
 
 });
 ___scope___.file("grid/attributes/v-filter.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+/**
+ * Custom attribute "v-filter"
+ * Logic behind filter in headers
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridAttributesFilter = (function () {
     function VGridAttributesFilter(element, vGrid) {
         this.vGrid = vGrid;
         this.element = element;
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilter.prototype.getOperatorName = function (operator) {
         return this.vGrid.filterOperatorNames[operator];
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilter.prototype.attached = function () {
         var _this = this;
         if (this.attribute) {
@@ -4756,12 +6406,15 @@ var VGridAttributesFilter = (function () {
             if (this.type !== 'checkbox') {
                 this.element.placeholder =
                     this.getOperatorName(this.filterOperator);
+                // add event listner
                 this.element.onkeyup = function (e) {
                     if (e.keyCode === 13) {
+                        // if they hit enter we need to get filter, update and run query
                         _this.updateFilter(_this.vGrid.attGridConnector.getCurrentFilter());
                         _this.vGrid.attGridConnector.query(_this.vGrid.attGridConnector.getCurrentFilter());
                     }
                     else {
+                        // if they did nop hit enter we need to check if keydown is the trigger
                         if (_this.filterOn === 'onKeyDown') {
                             _this.updateFilter(_this.vGrid.attGridConnector.getCurrentFilter());
                             _this.vGrid.attGridConnector.query(_this.vGrid.attGridConnector.getCurrentFilter());
@@ -4770,8 +6423,10 @@ var VGridAttributesFilter = (function () {
                 };
             }
             else {
+                // set default!
                 this.element.indeterminate = true;
                 this.element.style.opacity = '0.3';
+                // is checkbox
                 this.element.onclick = function () {
                     switch (_this.state) {
                         case 0:
@@ -4797,6 +6452,10 @@ var VGridAttributesFilter = (function () {
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilter.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
@@ -4808,6 +6467,10 @@ var VGridAttributesFilter = (function () {
         this.type = this.element.type;
         this.state = 0;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilter.prototype.getValue = function () {
         if (this.type !== 'checkbox') {
             return this.valueFormater ? this.valueFormater.fromView(this.element.value) : this.element.value;
@@ -4821,6 +6484,10 @@ var VGridAttributesFilter = (function () {
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilter.prototype.resetValue = function () {
         if (this.type !== 'checkbox') {
             this.element.value = '';
@@ -4830,15 +6497,21 @@ var VGridAttributesFilter = (function () {
             this.element.checked = false;
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilter.prototype.updateFilter = function (curFilter) {
         var _this = this;
         var filterIndex = -1;
+        // get index of filter
         curFilter.forEach(function (filter, index) {
             if (filter.attribute === _this.attribute && filter.key === _this.key) {
                 filterIndex = index;
             }
         });
         if (filterIndex !== -1) {
+            // we found a filter, lets update
             if (this.getValue() === '') {
                 curFilter.splice(filterIndex, 1);
             }
@@ -4848,6 +6521,7 @@ var VGridAttributesFilter = (function () {
             }
         }
         else {
+            // we didnt find filter, lets add one
             if (this.getValue() !== '') {
                 curFilter.push({
                     key: this.key,
@@ -4858,6 +6532,10 @@ var VGridAttributesFilter = (function () {
             }
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesFilter.prototype.valueConverters = function (value) {
         var valueConverter = this.vGrid.viewResources.getValueConverter.bind(this.vGrid.viewResources);
         return valueConverter(value);
@@ -4865,56 +6543,63 @@ var VGridAttributesFilter = (function () {
     return VGridAttributesFilter;
 }());
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilter.prototype, "field", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilter.prototype, "field");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilter.prototype, "operator", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilter.prototype, "operator");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilter.prototype, "converter", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilter.prototype, "converter");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilter.prototype, "keydown", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilter.prototype, "keydown");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesFilter.prototype, "key", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesFilter.prototype, "key");
 VGridAttributesFilter = __decorate([
     aurelia_framework_1.customAttribute('v-filter'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [HTMLElement, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributesFilter);
 exports.VGridAttributesFilter = VGridAttributesFilter;
 
 });
 ___scope___.file("grid/attributes/v-image.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+/**
+ * Custom attribute "v-image-fix"
+ * Clears src of image so it does not lag
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridAttributesImageFix = (function () {
     function VGridAttributesImageFix(element, vGrid) {
         this.vGrid = vGrid;
         this.element = element;
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributesImageFix.prototype.valueChanged = function (newValue) {
         newValue = newValue ? newValue : '';
         this.element.src = '';
         this.element.src = this.value || newValue;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesImageFix.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
@@ -4925,26 +6610,31 @@ var VGridAttributesImageFix = (function () {
 }());
 VGridAttributesImageFix = __decorate([
     aurelia_framework_1.customAttribute('v-image-fix'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [HTMLImageElement, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributesImageFix);
 exports.VGridAttributesImageFix = VGridAttributesImageFix;
 
 });
 ___scope___.file("grid/attributes/v-menu.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+/**
+ * Custom attribute "v-image-fix"
+ * logic behind menu/ adds contextmenu to grid
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridAttributeMenu = (function () {
+    // @bindable private copypaste: string; //todo
     function VGridAttributeMenu(element, vGrid) {
         this.element = element;
         this.controller = vGrid.controller;
@@ -4954,12 +6644,24 @@ var VGridAttributeMenu = (function () {
         this.checkBinded = this.check.bind(this);
         this.callbackBinded = this.callback.bind(this);
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributeMenu.prototype.attached = function () {
         this.element.addEventListener('contextmenu', this.openBinded);
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributeMenu.prototype.unbind = function () {
         document.removeEventListener('click', this.checkBinded);
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributeMenu.prototype.check = function (e) {
         var x = e.target.classList.contains('avg-menu__link');
         if (!x) {
@@ -4967,6 +6669,10 @@ var VGridAttributeMenu = (function () {
             document.removeEventListener('click', this.checkBinded);
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributeMenu.prototype.callback = function (type, option, event) {
         if (type === 'filter') {
             if (option === 'clear') {
@@ -5024,6 +6730,10 @@ var VGridAttributeMenu = (function () {
         }
         return false;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributeMenu.prototype.open = function (e) {
         this.check(e);
         document.addEventListener('click', this.checkBinded);
@@ -5041,6 +6751,10 @@ var VGridAttributeMenu = (function () {
             });
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributeMenu.prototype.getPosition = function (e) {
         var posx = 0;
         var posy = 0;
@@ -5060,50 +6774,48 @@ var VGridAttributeMenu = (function () {
     return VGridAttributeMenu;
 }());
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributeMenu.prototype, "filter", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributeMenu.prototype, "filter");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributeMenu.prototype, "filterkey", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributeMenu.prototype, "filterkey");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributeMenu.prototype, "sort", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributeMenu.prototype, "sort");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributeMenu.prototype, "pinned", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributeMenu.prototype, "pinned");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributeMenu.prototype, "groupby", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributeMenu.prototype, "groupby");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributeMenu.prototype, "groupbytitle", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributeMenu.prototype, "groupbytitle");
 VGridAttributeMenu = __decorate([
     aurelia_framework_1.customAttribute('v-menu'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributeMenu);
 exports.VGridAttributeMenu = VGridAttributeMenu;
 
 });
 ___scope___.file("grid/attributes/v-resize-col.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+/**
+ * Custom attribute "v-resize-col"
+ * logic behind resizing of columns
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridAttributesResizeCol = (function () {
     function VGridAttributesResizeCol(element, vGrid) {
         this.vGrid = vGrid;
@@ -5121,31 +6833,55 @@ var VGridAttributesResizeCol = (function () {
         this.columnsArray = vGrid.columnBindingContext['setup' + this.colType];
         this.columnBindingContext = vGrid.columnBindingContext;
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributesResizeCol.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesResizeCol.prototype.attached = function () {
         var _this = this;
+        // add resize handle
         var resizeHandle = document.createElement('DIV');
         resizeHandle.classList.add('avg-draggable-handler');
         this.onmousedownBinded = this.onmousedown.bind(this);
         this.onmousemoveBinded = this.onmousemove.bind(this);
         this.onmouseupBinded = this.onmouseup.bind(this);
+        // register onmouse down event
         resizeHandle.onmousedown = function (e) {
             _this.ctx.resizing = true;
             _this.onmousedown(e);
         };
+        // add
         this.column.appendChild(resizeHandle);
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesResizeCol.prototype.onmouseup = function () {
+        // remove events
         document.removeEventListener('mousemove', this.onmousemoveBinded);
         document.removeEventListener('mouseup', this.onmouseupBinded);
         this.ctx.resizing = false;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesResizeCol.prototype.onmousemove = function (e) {
         this.updateHeader(e);
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesResizeCol.prototype.updateHeader = function (e) {
         var _this = this;
         var w = Math.abs(this.screenX - e.screenX);
@@ -5156,6 +6892,7 @@ var VGridAttributesResizeCol = (function () {
                 if (_this.colType === 'main' && movementX > 10) {
                     _this.columnsArray[_this.colNo].width = movementX;
                     _this.vGrid.colConfig[_this.colNo].colWidth = _this.columnsArray[_this.colNo].width;
+                    // tslint:disable-next-line:prefer-for-of
                     for (var i = 0; i < _this.columnsArray.length; i++) {
                         if (_this.columnsArray[_this.colNo].left < _this.columnsArray[i].left) {
                             _this.columnsArray[i].left = _this.originals[i] - appendValue;
@@ -5167,6 +6904,7 @@ var VGridAttributesResizeCol = (function () {
                 if (_this.colType === 'right' && movementX > 10) {
                     _this.columnsArray[_this.colNo].width = movementX;
                     _this.vGrid.colConfig[_this.colNo].colWidth = _this.columnsArray[_this.colNo].width;
+                    // tslint:disable-next-line:prefer-for-of
                     for (var i = 0; i < _this.columnsArray.length; i++) {
                         if (_this.columnsArray[_this.colNo].left < _this.columnsArray[i].left) {
                             _this.columnsArray[i].left = _this.originals[i] - appendValue;
@@ -5181,6 +6919,7 @@ var VGridAttributesResizeCol = (function () {
                 if (_this.colType === 'left' && movementX > 10) {
                     _this.columnsArray[_this.colNo].width = movementX;
                     _this.vGrid.colConfig[_this.colNo].colWidth = _this.columnsArray[_this.colNo].width;
+                    // tslint:disable-next-line:prefer-for-of
                     for (var i = 0; i < _this.columnsArray.length; i++) {
                         if (_this.columnsArray[_this.colNo].left < _this.columnsArray[i].left) {
                             _this.columnsArray[i].left = _this.originals[i] - appendValue;
@@ -5196,11 +6935,17 @@ var VGridAttributesResizeCol = (function () {
             });
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesResizeCol.prototype.onmousedown = function (e) {
         var _this = this;
+        // get some vars
         this.screenX = e.screenX;
         this.originalWidth = this.context.width;
         this.originals = [];
+        // tslint:disable-next-line:prefer-for-of
         for (var i = 0; i < this.columnsArray.length; i++) {
             this.originals.push(this.columnsArray[i].left);
         }
@@ -5238,6 +6983,7 @@ var VGridAttributesResizeCol = (function () {
                 _this.rightColNoWidth = col.width;
             }
         });
+        // register mosemove and mouse up event
         document.addEventListener('mousemove', this.onmousemoveBinded);
         document.addEventListener('mouseup', this.onmouseupBinded);
     };
@@ -5245,44 +6991,61 @@ var VGridAttributesResizeCol = (function () {
 }());
 VGridAttributesResizeCol = __decorate([
     aurelia_framework_1.customAttribute('v-resize-col'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributesResizeCol);
 exports.VGridAttributesResizeCol = VGridAttributesResizeCol;
 
 });
 ___scope___.file("grid/attributes/v-selection.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+/**
+ * Custom attribute "v-resize-col"
+ * enablkes checkbox selection
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridAttributesSelection = (function () {
     function VGridAttributesSelection(element, vGrid) {
         this.vGrid = vGrid;
         this.controller = vGrid.controller;
         this.element = element;
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributesSelection.prototype.selectedChanged = function (newValue) {
         if (this.type === 'row') {
             this.element.checked = newValue;
         }
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesSelection.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesSelection.prototype.attached = function () {
         var _this = this;
         this.element.checked = this.selected;
         this.element.onclick = function () {
+            // todo, check... think ff had something weird here
             var status = _this.element.checked === 'true' || _this.element.checked === true ? true : false;
             if (status) {
                 if (_this.type === 'header') {
@@ -5309,45 +7072,55 @@ var VGridAttributesSelection = (function () {
     return VGridAttributesSelection;
 }());
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", Boolean)
-], VGridAttributesSelection.prototype, "selected", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesSelection.prototype, "selected");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesSelection.prototype, "type", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesSelection.prototype, "type");
 VGridAttributesSelection = __decorate([
     aurelia_framework_1.customAttribute('v-selection'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [HTMLInputElement, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributesSelection);
 exports.VGridAttributesSelection = VGridAttributesSelection;
 
 });
 ___scope___.file("grid/attributes/v-sort.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("../v-grid");
+/**
+ * Custom attribute "v-resize-col"
+ * logic behind sorting in grid/sort icons
+ * Used by default by the simple html setup
+ * Can be used with custom html
+ *
+ */
 var VGridAttributesSort = (function () {
     function VGridAttributesSort(element, vGrid) {
         this.firstTime = true;
         this.vGrid = vGrid;
         this.element = element;
     }
+    /**
+     * todo description
+     *
+     */
     VGridAttributesSort.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
         this.attribute = this.field;
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesSort.prototype.attached = function () {
         var _this = this;
         this.sortIcon = document.createElement('i');
@@ -5372,9 +7145,17 @@ var VGridAttributesSort = (function () {
             _this.sortIcon.innerHTML = _this.getSortIconMarkup();
         });
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesSort.prototype.detached = function () {
         this.element.removeChild(this.sortIcon);
     };
+    /**
+     * todo description
+     *
+     */
     VGridAttributesSort.prototype.getSortIconMarkup = function () {
         var _this = this;
         var markup = "";
@@ -5397,34 +7178,34 @@ var VGridAttributesSort = (function () {
     return VGridAttributesSort;
 }());
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesSort.prototype, "field", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesSort.prototype, "field");
 __decorate([
-    aurelia_framework_1.bindable,
-    __metadata("design:type", String)
-], VGridAttributesSort.prototype, "asc", void 0);
+    aurelia_framework_1.bindable
+], VGridAttributesSort.prototype, "asc");
 VGridAttributesSort = __decorate([
     aurelia_framework_1.customAttribute('v-sort'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid),
-    __metadata("design:paramtypes", [HTMLElement, v_grid_1.VGrid])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid)
 ], VGridAttributesSort);
 exports.VGridAttributesSort = VGridAttributesSort;
 
 });
 ___scope___.file("grid/v-grid-col.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("./v-grid");
+/**
+ * Custom element <v-grid-col>
+ * This is used for creating the simple html columns
+ *
+ */
 var VGridElementColConfig = (function () {
     function VGridElementColConfig(element, vGrid, targetInstruction) {
         this.vGrid = vGrid;
@@ -5433,6 +7214,11 @@ var VGridElementColConfig = (function () {
         this.colHeaderTemplate = targetInstruction.elementInstruction.colHeaderTemplate;
         this.colCss = targetInstruction.elementInstruction.colCss;
     }
+    /**
+     * When bind runs we get the bindable attributes & template markup if any from <v-grid-col>
+     * We add this to the vGrid class colConfig to use later when grid is generated
+     *
+     */
     VGridElementColConfig.prototype.bind = function (bindingContext, overrideContext) {
         this.bindingContext = bindingContext;
         this.overrideContext = overrideContext;
@@ -5461,6 +7247,10 @@ var VGridElementColConfig = (function () {
             colType: this.colType || 'text'
         });
     };
+    /**
+     * Checks bool value and return real boolean
+     *
+     */
     VGridElementColConfig.prototype.checkBool = function (value) {
         if (typeof value === 'string') {
             value = value.toLowerCase();
@@ -5483,128 +7273,120 @@ var VGridElementColConfig = (function () {
     return VGridElementColConfig;
 }());
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-width' }),
-    __metadata("design:type", Number)
-], VGridElementColConfig.prototype, "colWidth", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-width' })
+], VGridElementColConfig.prototype, "colWidth");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-field' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colField", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-field' })
+], VGridElementColConfig.prototype, "colField");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-header-name' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colHeaderName", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-header-name' })
+], VGridElementColConfig.prototype, "colHeaderName");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-sort' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colSort", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-sort' })
+], VGridElementColConfig.prototype, "colSort");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-pin-left' }),
-    __metadata("design:type", Boolean)
-], VGridElementColConfig.prototype, "colPinLeft", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-pin-left' })
+], VGridElementColConfig.prototype, "colPinLeft");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-pin-right' }),
-    __metadata("design:type", Boolean)
-], VGridElementColConfig.prototype, "colPinRight", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-pin-right' })
+], VGridElementColConfig.prototype, "colPinRight");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-filter' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colFilter", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-filter' })
+], VGridElementColConfig.prototype, "colFilter");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-filter-top' }),
-    __metadata("design:type", Boolean)
-], VGridElementColConfig.prototype, "colFilterTop", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-filter-top' })
+], VGridElementColConfig.prototype, "colFilterTop");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-add-label-attributes' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colAddLabelAttributes", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-add-label-attributes' })
+], VGridElementColConfig.prototype, "colAddLabelAttributes");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-add-filter-attributes' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colAddFilterAttributes", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-add-filter-attributes' })
+], VGridElementColConfig.prototype, "colAddFilterAttributes");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-add-row-attributes' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colAddRowAttributes", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-add-row-attributes' })
+], VGridElementColConfig.prototype, "colAddRowAttributes");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-type' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colType", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-type' })
+], VGridElementColConfig.prototype, "colType");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-filter-menu' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colFilterMenu", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-filter-menu' })
+], VGridElementColConfig.prototype, "colFilterMenu");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-label-menu' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colLabelMenu", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-label-menu' })
+], VGridElementColConfig.prototype, "colLabelMenu");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-row-menu' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colRowMenu", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-row-menu' })
+], VGridElementColConfig.prototype, "colRowMenu");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-hidden' }),
-    __metadata("design:type", Boolean)
-], VGridElementColConfig.prototype, "colHidden", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-hidden' })
+], VGridElementColConfig.prototype, "colHidden");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-drag-drop' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colDragDrop", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-drag-drop' })
+], VGridElementColConfig.prototype, "colDragDrop");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-resizeable' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colResizeable", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-resizeable' })
+], VGridElementColConfig.prototype, "colResizeable");
 __decorate([
-    aurelia_framework_1.bindable({ attribute: 'col-display-edit' }),
-    __metadata("design:type", String)
-], VGridElementColConfig.prototype, "colDisplayEdit", void 0);
+    aurelia_framework_1.bindable({ attribute: 'col-display-edit' })
+], VGridElementColConfig.prototype, "colDisplayEdit");
 VGridElementColConfig = __decorate([
     aurelia_framework_1.noView(),
     aurelia_framework_1.processContent(function (compiler, resources, element, instruction) {
+        // dont use  
         compiler = null;
         resources = null;
+        // check if any header template is added, if so add to instruction for use
         var headerTemplateElement = element.getElementsByTagName('V-HEADER-TEMPLATE')[0];
         var headerTemplateHtml = headerTemplateElement ? headerTemplateElement.innerHTML : null;
         if (headerTemplateHtml !== '') {
             instruction.colHeaderTemplate = headerTemplateHtml;
         }
+        // check if any row template is added, if so add to instruction for use
         var rowTemplateElement = element.getElementsByTagName('V-ROW-TEMPLATE')[0];
         var rowTemplateHtml = rowTemplateElement ? rowTemplateElement.innerHTML : null;
         if (rowTemplateHtml !== '') {
             instruction.colRowTemplate = rowTemplateHtml;
         }
+        // clear the innerhtml, not needed, and we dont want it there messing up stuff
         element.innerHTML = '';
+        // we want to get this css attribute and use if later
         var css = element.getAttribute('col-css');
         if (css) {
             instruction.colCss = css;
         }
     }),
     aurelia_framework_1.customElement('v-grid-col'),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid, Object])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction)
 ], VGridElementColConfig);
 exports.VGridElementColConfig = VGridElementColConfig;
 
 });
 ___scope___.file("grid/v-grid-contextmenu.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("./v-grid");
+/**
+ * Custom element <v-grid-contextmenu>
+ * This is used for creating custom menus markup
+ *
+ */
 var VGridContextmenu = (function () {
     function VGridContextmenu(element, vGrid, targetInstruction) {
         this.element = element;
         this.vGrid = vGrid;
         this.customMenuTemplates = targetInstruction.elementInstruction.menuTemplates;
     }
+    /**
+     * Add the templates to vGrid class for use later when we generate the grid
+     *
+     */
     VGridContextmenu.prototype.bind = function () {
         this.vGrid.customMenuTemplates = this.customMenuTemplates;
     };
@@ -5614,11 +7396,13 @@ VGridContextmenu = __decorate([
     aurelia_framework_1.noView(),
     aurelia_framework_1.customElement('v-grid-contextmenu'),
     aurelia_framework_1.processContent(function (compiler, resources, element, instruction) {
+        // dont use  
         compiler = null;
         resources = null;
         instruction.menuTemplates = {};
         var template;
         var templateHTML;
+        // Check if any templates are added, if so add to instruction for use
         template = element.getElementsByTagName('V-MENU-CLOSE')[0];
         templateHTML = template ? template.innerHTML : null;
         if (templateHTML !== '') {
@@ -5654,33 +7438,40 @@ VGridContextmenu = __decorate([
         if (templateHTML !== '') {
             instruction.menuTemplates.all = templateHTML;
         }
+        // clear the innerhtml, not needed, and we dont want it there messing up stuff
         element.innerHTML = '';
     }),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid, Object])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction)
 ], VGridContextmenu);
 exports.VGridContextmenu = VGridContextmenu;
 
 });
 ___scope___.file("grid/v-grid-footer.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("./v-grid");
+/**
+ * Custom element <v-grid-footer>
+ * This is used for creating custom footer markup
+ *
+ */
 var VGridFooter = (function () {
     function VGridFooter(element, vGrid, targetInstruction) {
         this.element = element;
         this.vGrid = vGrid;
         this.template = targetInstruction.elementInstruction.template;
     }
+    /**
+     * add the markup to vgrid class for use later when generating the grid
+     *
+     */
     VGridFooter.prototype.bind = function () {
         this.vGrid.footerTemplate = this.template;
     };
@@ -5690,36 +7481,45 @@ VGridFooter = __decorate([
     aurelia_framework_1.noView(),
     aurelia_framework_1.customElement('v-grid-footer'),
     aurelia_framework_1.processContent(function (compiler, resources, element, instruction) {
+        // dont use  
         compiler = null;
         resources = null;
+        // get html markup, this will be added to our viewport when we create it
         instruction.template = element.innerHTML;
         element.innerHTML = '';
     }),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid, Object])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction)
 ], VGridFooter);
 exports.VGridFooter = VGridFooter;
 
 });
 ___scope___.file("grid/v-grid-group-element.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("./v-grid");
+/**
+ * Custom element <v-grid-group-element>
+ * This is used for creating custom grouping element
+ * The ones in the top panel
+ *
+ */
 var VGridGroupElement = (function () {
     function VGridGroupElement(element, vGrid, targetInstruction) {
         this.element = element;
         this.vGrid = vGrid;
         this.rowTemplate = targetInstruction.elementInstruction.rowTemplate;
     }
+    /**
+     * add the markup to vgrid class for use later when generating the grid
+     *
+     */
     VGridGroupElement.prototype.bind = function () {
         this.vGrid.colGroupElement = this.rowTemplate;
     };
@@ -5729,36 +7529,45 @@ VGridGroupElement = __decorate([
     aurelia_framework_1.noView(),
     aurelia_framework_1.customElement('v-grid-group-element'),
     aurelia_framework_1.processContent(function (compiler, resources, element, instruction) {
+        // dont use  
         compiler = null;
         resources = null;
+        // get html markup, this will be added to our viewport when we create it
         instruction.rowTemplate = element.innerHTML;
         element.innerHTML = '';
     }),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid, Object])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction)
 ], VGridGroupElement);
 exports.VGridGroupElement = VGridGroupElement;
 
 });
 ___scope___.file("grid/v-grid-group-row.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("./v-grid");
+/**
+ * Custom element <v-grid-group-row>
+ * This is used for creating custom rows in grouping
+ * The one holding the group value / full width rows
+ *
+ */
 var VGridGroupRow = (function () {
     function VGridGroupRow(element, vGrid, targetInstruction) {
         this.element = element;
         this.vGrid = vGrid;
         this.rowTemplate = targetInstruction.elementInstruction.rowTemplate;
     }
+    /**
+     * add the markup to vgrid class for use later when generating the grid
+     *
+     */
     VGridGroupRow.prototype.bind = function () {
         this.vGrid.colGroupRow = this.rowTemplate;
     };
@@ -5768,36 +7577,44 @@ VGridGroupRow = __decorate([
     aurelia_framework_1.noView(),
     aurelia_framework_1.customElement('v-grid-group-row'),
     aurelia_framework_1.processContent(function (compiler, resources, element, instruction) {
+        // dont use  
         compiler = null;
         resources = null;
+        // get html markup, this will be added to our viewport when we create it
         instruction.rowTemplate = element.innerHTML;
         element.innerHTML = '';
     }),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid, Object])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction)
 ], VGridGroupRow);
 exports.VGridGroupRow = VGridGroupRow;
 
 });
 ___scope___.file("grid/v-grid-loadingscreen.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("./v-grid");
+/**
+ * Custom element <v-grid-loadingscreen>
+ * This is used for creating custom loading screen
+ *
+ */
 var VGridLoadingScreen = (function () {
     function VGridLoadingScreen(element, vGrid, targetInstruction) {
         this.element = element;
         this.vGrid = vGrid;
         this.template = targetInstruction.elementInstruction.template;
     }
+    /**
+     * add the markup to vgrid class for use later when generating the grid
+     *
+     */
     VGridLoadingScreen.prototype.bind = function () {
         this.vGrid.loadingScreenTemplate = this.template;
     };
@@ -5807,30 +7624,36 @@ VGridLoadingScreen = __decorate([
     aurelia_framework_1.noView(),
     aurelia_framework_1.customElement('v-grid-loadingscreen'),
     aurelia_framework_1.processContent(function (compiler, resources, element, instruction) {
+        // dont use  
         compiler = null;
         resources = null;
+        // get html markup, this will be added to our viewport when we create it
         instruction.template = element.innerHTML;
         element.innerHTML = '';
     }),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid, Object])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction)
 ], VGridLoadingScreen);
 exports.VGridLoadingScreen = VGridLoadingScreen;
 
 });
 ___scope___.file("grid/v-grid-row-repeat.js", function(exports, require, module, __filename, __dirname){ 
-
+var __decorate = __fsbx_decorate(arguments)
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var aurelia_framework_1 = require("aurelia-framework");
 var v_grid_1 = require("./v-grid");
+/**
+ * Custom element <v-grid-row-repeat>
+ * This is used for creating custom row repeat
+ * Row repeat is just a full grid with row without no column
+ * Thisone is useful for when you need to for repeated
+ *
+ */
 var VGridElementRowRepeat = (function () {
     function VGridElementRowRepeat(element, vGrid, targetInstruction) {
         this.element = element;
@@ -5838,6 +7661,10 @@ var VGridElementRowRepeat = (function () {
         this.rowTemplate = targetInstruction.elementInstruction.rowTemplate;
         this.headerTemplate = targetInstruction.elementInstruction.headerTemplate;
     }
+    /**
+     * add the markup to vgrid class for use later when generating the grid
+     *
+     */
     VGridElementRowRepeat.prototype.bind = function () {
         this.vGrid.colRepeater = true;
         this.vGrid.colRepeatRowTemplate = this.rowTemplate;
@@ -5849,25 +7676,28 @@ VGridElementRowRepeat = __decorate([
     aurelia_framework_1.noView(),
     aurelia_framework_1.customElement('v-grid-row-repeat'),
     aurelia_framework_1.processContent(function (compiler, resources, element, instruction) {
+        // dont use  
         compiler = null;
         resources = null;
+        // check if any header template is added, if so add to instruction for use
         var headerTemplateElement = element.getElementsByTagName('V-HEADER-TEMPLATE')[0];
         var headerTemplateHtml = headerTemplateElement ? headerTemplateElement.innerHTML : null;
         if (headerTemplateHtml !== '') {
             instruction.headerTemplate = headerTemplateHtml;
         }
+        // check if any row template is added, if so add to instruction for use
         var rowTemplateElement = element.getElementsByTagName('V-ROW-TEMPLATE')[0];
         var rowTemplateHtml = rowTemplateElement ? rowTemplateElement.innerHTML : null;
         if (rowTemplateHtml !== '') {
             instruction.rowTemplate = rowTemplateHtml;
         }
+        // if we didnt get anything we use it all
         if (!rowTemplateHtml) {
             instruction.rowTemplate = element.innerHTML;
         }
         element.innerHTML = '';
     }),
-    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction),
-    __metadata("design:paramtypes", [Element, v_grid_1.VGrid, Object])
+    aurelia_framework_1.inject(Element, v_grid_1.VGrid, aurelia_framework_1.TargetInstruction)
 ], VGridElementRowRepeat);
 exports.VGridElementRowRepeat = VGridElementRowRepeat;
 
@@ -5902,8 +7732,37 @@ __fsbx_css("grid/styles/main-element-tags.css", "/*here is the main tag css, kee
 });
 ___scope___.file("grid/styles/main-elements.css", function(exports, require, module, __filename, __dirname){ 
 
-__fsbx_css("grid/styles/main-elements.css", ".avg-default {\r\n  border: 1px solid rgb(230, 230, 230);\r\n  -webkit-touch-callout: none;\r\n  -webkit-user-select: none;\r\n  -moz-user-select: none;\r\n  -ms-user-select: none;\r\n  user-select: none;\r\n}\r\n\r\n.avg-default .avg-top-panel {\r\n  border-bottom: 1px solid rgb(230, 230, 230);\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-header {\r\n  border-bottom: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-footer {\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-content-right {\r\n  background-color: white;\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-content-left {\r\n  background-color: white;\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-header-main {\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-header-left {\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-header-right {\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-content-main {\r\n  background-color: white;\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-row {\r\n  border-bottom: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-header-left .avg-col {\r\n  /*white-space: nowrap;*/\r\n  box-sizing: border-box;\r\n  text-overflow: ellipsis;\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-header-main .avg-col {\r\n  /*white-space: nowrap;*/\r\n  box-sizing: border-box;\r\n  text-overflow: ellipsis;\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-header-right .avg-col {\r\n  box-sizing: border-box;\r\n  border-left: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-content-left .avg-col {\r\n  white-space: nowrap;\r\n  box-sizing: border-box;\r\n  text-overflow: ellipsis;\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-content-main .avg-col {\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-content-right .avg-col {\r\n  border-left: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-col-group {\r\n  pointer-events: all;\r\n  box-sizing: border-box;\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n  background-color: rgb(250, 250, 250);\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n  padding: 5px 10px;\r\n}\r\n\r\n.avg-default .avg-col-grouping {\r\n  white-space: nowrap;\r\n  box-sizing: border-box;\r\n  text-overflow: ellipsis;\r\n  background-color: rgb(250, 250, 250);\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-col-grouping-header {\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n  background-color: rgb(240, 240, 240);\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-selected-row {\r\n  box-shadow: none;\r\n  background-color: rgb(203, 195, 203);\r\n}\r\n");
+__fsbx_css("grid/styles/main-elements.css", "﻿.avg-default {\r\n  border: 1px solid rgb(230, 230, 230);\r\n  -webkit-touch-callout: none;\r\n  -webkit-user-select: none;\r\n  -moz-user-select: none;\r\n  -ms-user-select: none;\r\n  user-select: none;\r\n}\r\n\r\n.avg-default .avg-top-panel {\r\n  border-bottom: 1px solid rgb(230, 230, 230);\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-header {\r\n  border-bottom: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-footer {\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-content-right {\r\n  background-color: white;\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-content-left {\r\n  background-color: white;\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-header-main {\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-header-left {\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-header-right {\r\n  background-color: rgb(240, 240, 240);\r\n}\r\n\r\n.avg-default .avg-content-main {\r\n  background-color: white;\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-row {\r\n  border-bottom: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-header-left .avg-col {\r\n  /*white-space: nowrap;*/\r\n  box-sizing: border-box;\r\n  text-overflow: ellipsis;\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-header-main .avg-col {\r\n  /*white-space: nowrap;*/\r\n  box-sizing: border-box;\r\n  text-overflow: ellipsis;\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-header-right .avg-col {\r\n  box-sizing: border-box;\r\n  border-left: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-content-left .avg-col {\r\n  white-space: nowrap;\r\n  box-sizing: border-box;\r\n  text-overflow: ellipsis;\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-content-main .avg-col {\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-content-right .avg-col {\r\n  border-left: 1px solid rgb(230, 230, 230);\r\n}\r\n\r\n.avg-default .avg-col-group {\r\n  pointer-events: all;\r\n  box-sizing: border-box;\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n  background-color: rgb(250, 250, 250);\r\n  border-top: 1px solid rgb(230, 230, 230);\r\n  padding: 5px 10px;\r\n}\r\n\r\n.avg-default .avg-col-grouping {\r\n  white-space: nowrap;\r\n  box-sizing: border-box;\r\n  text-overflow: ellipsis;\r\n  background-color: rgb(250, 250, 250);\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-col-grouping-header {\r\n  white-space: nowrap;\r\n  text-overflow: ellipsis;\r\n  background-color: rgb(240, 240, 240);\r\n  border-right: 1px solid rgb(230, 230, 230);\r\n  overflow: hidden;\r\n}\r\n\r\n.avg-default .avg-selected-row {\r\n  box-shadow: none;\r\n  background-color: rgb(203, 195, 203);\r\n}\r\n");
 });
+});
+FuseBox.global("__fsbx_decorate", function(localArguments) {
+    return function(decorators, target, key, desc) {
+        var c = arguments.length,
+            r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+            d;
+
+        if (!decorators) {
+            return;
+        }
+        if (decorators && decorators.push) {
+            decorators.push(
+                __metadata("fusebox:exports", localArguments[0]),
+                __metadata("fusebox:require", localArguments[1]),
+                __metadata("fusebox:module", localArguments[2]),
+                __metadata("fusebox:__filename", localArguments[3]),
+                __metadata("fusebox:__dirname", localArguments[4])
+            )
+        }
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else
+            for (var i = decorators.length - 1; i >= 0; i--)
+                if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+});
+
+FuseBox.global("__metadata", function(k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 });
 
 FuseBox.import("aurelia-v-grid/index.js");

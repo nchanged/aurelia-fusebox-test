@@ -1,8 +1,8 @@
 /*eslint dot-notation:0*/
-import {Origin} from 'aurelia-metadata';
-import {TemplateRegistryEntry, Loader} from 'aurelia-loader';
-import {TextTemplateLoader} from './text-template-loader';
-import {PLATFORM} from 'aurelia-pal';
+import { Origin } from 'aurelia-metadata';
+import { TemplateRegistryEntry, Loader } from 'aurelia-loader';
+import { TextTemplateLoader } from './text-template-loader';
+import { PLATFORM } from 'aurelia-pal';
 
 function ensureOriginOnExports(executed, name) {
   let target = executed;
@@ -26,6 +26,13 @@ function ensureOriginOnExports(executed, name) {
   return executed;
 }
 
+
+function debugPrint(title, args) {
+  console.log('[DEBUG]:' + title,args);
+}
+
+
+
 /**
 * A default implementation of the Loader abstraction which works with SystemJS, RequireJS and Dojo Loader.
 */
@@ -35,40 +42,30 @@ export class FuseAureliaLoader extends Loader {
   */
   textPluginName = 'text';
   loaderPlugins = Object.create(null);
-  
+
+
+
   /**
   * Creates an instance of the DefaultLoader.
   */
   constructor() {
     super();
-
     this.moduleRegistry = Object.create(null);
     this.useTemplateLoader(new TextTemplateLoader());
 
     let that = this;
 
     this.addPlugin('template-registry-entry', {
-      'fetch': function(address) {
-        console.log('fetch =>', address)
+      'fetch': function (address) {
+        debugPrint('template-registry-entry- fetch =>', address)
         let entry = that.getOrCreateTemplateRegistryEntry(address);
         return entry.templateIsLoaded ? entry : that.templateLoader.loadTemplate(that, entry).then(x => entry);
       }
     });
-    // this.addPlugin('html-resource-plugin', {
-    //   'fetch': function(address) {
-    //     console.log('fetch =>', address)
-    //     let entry = that.getOrCreateTemplateRegistryEntry(address);
-    //     return entry.templateIsLoaded ? entry : that.templateLoader.loadTemplate(that, entry).then(x => entry);
-    //   }
-    // });
-    // this.addPlugin('css-resource-plugin', {
-    //   'fetch': function(address) {
-    //     console.log('fetch =>', address)
-    //     let entry = that.getOrCreateTemplateRegistryEntry(address);
-    //     return entry.templateIsLoaded ? entry : that.templateLoader.loadTemplate(that, entry).then(x => entry);
-    //   }
-    // });
+
   }
+
+
 
   /**
   * Instructs the loader to use a specific TemplateLoader instance for loading templates
@@ -78,28 +75,31 @@ export class FuseAureliaLoader extends Loader {
     this.templateLoader = templateLoader;
   }
 
+
+
   /**
   * Loads a collection of modules.
   * @param ids The set of module ids to load.
   * @return A Promise for an array of loaded modules.
   */
   loadAllModules(ids): Promise {
-    //In theory, this is called for resource dependencies
-    console.log("loadAllModules =>", arguments)
+    debugPrint("loadAllModules => ", arguments);
     let loads = [];
 
     for (let i = 0, ii = ids.length; i < ii; ++i) {
       let item = ids[i];
-      // if(item.endsWith(".html")) {
-      //   loads.push(this._import(item));
-      // }else{
+       if(item.endsWith(".html")) {
+         loads.push(this._import(item));
+       }else{
         loads.push(this.loadModule(item));
-      // }
-      
+      }
+
     }
 
     return Promise.all(loads);
   }
+
+
 
   /**
   * Loads a template.
@@ -107,9 +107,11 @@ export class FuseAureliaLoader extends Loader {
   * @return A Promise for a TemplateRegistryEntry containing the template.
   */
   loadTemplate(url): Promise {
-    console.log("loadTemplate =>", arguments)
+    debugPrint("loadTemplate => ", arguments);
     return this._import(this.applyPluginToUrl(url, 'template-registry-entry'));
   }
+
+
 
   /**
   * Loads a text-based resource.
@@ -117,15 +119,17 @@ export class FuseAureliaLoader extends Loader {
   * @return A Promise for text content.
   */
   loadText(url): Promise {
-    console.log("loadText =>", arguments)
-    return Promise.resolve(FuseBox.import("~/" + url)).then(textOrModule => {
-       if (typeof textOrModule === 'string') {
-         return textOrModule;
-       }
+    debugPrint("loadText => ", arguments);
+    return Promise.resolve(this.loadWithFusebox(this.findFuseBoxPath(url))).then(textOrModule => {
+      if (typeof textOrModule === 'string') {
+        return textOrModule;
+      }
+      return textOrModule['default'];
+    })
 
-       return textOrModule['default'];
-     });
   }
+
+
 
   /**
   * Loads a module.
@@ -133,41 +137,13 @@ export class FuseAureliaLoader extends Loader {
   * @return A Promise for the loaded module.
   */
   loadModule(id) {
-    console.log("loadModule =>", id)
-    
-    let module = null
-    if(id.startsWith("aurelia-templating-resources/")) { //This should be handled in a Plugin
-      id = id.replace("aurelia-templating-resources", "aurelia-templating-resources/dist/commonjs")
-      module = FuseBox.import(id)
-    }else if(id.startsWith("aurelia-templating-router/")) { //This should be handled in a Plugin
-      id = id.replace("aurelia-templating-router", "aurelia-templating-router/dist/commonjs")
-      module = FuseBox.import(id)
-    }else if(id.startsWith("aurelia-v-grid/")) { //This should be handled in a Plugin
-      id = id.replace("aurelia-v-grid", "aurelia-v-grid")
-      module = FuseBox.import(id)
-    }
-    else if(id.startsWith("html-resource-plugin!")){
-      module = this._import(id)
-      // id = id.replace("html-resource-plugin!", "")
-    }
-    else if(id.startsWith("css-resource-plugin!")){
-      id = id.replace("css-resource-plugin!", "")
-      module = FuseBox.import('~/' +id)
-    }
-    else{
-
-      if(!FuseBox.packages[id]){
-        module = FuseBox.import('~/' + id)
-      } else {
-        module = FuseBox.import(id)
-      }
-    }
-    
+    debugPrint("loadModule => ", arguments);
+    let module = this.loadWithFusebox(this.findFuseBoxPath(id));
     module = ensureOriginOnExports(module, id);
-    
-
     return Promise.resolve(module);
   }
+
+
 
   /**
   * Registers a plugin with the loader.
@@ -175,11 +151,14 @@ export class FuseAureliaLoader extends Loader {
   * @param implementation The plugin implementation.
   */
   addPlugin(pluginName, implementation) {
-    console.log("addPlugin =>", arguments)
-     if(!this.loaderPlugins[pluginName]) {
+    debugPrint("loadModule => ", arguments);
+    if (!this.loaderPlugins[pluginName]) {
       this.loaderPlugins[pluginName] = implementation;
-     }
+    }
+
   }
+
+
 
   /**
   * Normalizes a module id.
@@ -188,9 +167,11 @@ export class FuseAureliaLoader extends Loader {
   * @return A promise for the normalized module id.
   */
   normalize(moduleId, relativeTo) {
-    console.log("normalize =>", arguments)
+    debugPrint("normalize =>", arguments);
     return Promise.resolve(moduleId);
   }
+
+
 
   /**
   * Maps a module id to a source.
@@ -198,10 +179,12 @@ export class FuseAureliaLoader extends Loader {
   * @param source The source to map the module to.
   */
   map(id, source) {
-    console.log("map =>", arguments)
+    debugPrint("map =>", arguments);
   }
 
-   _import(address) {
+
+
+  _import(address) {
     const addressParts = address.split('!');
     const moduleId = addressParts.splice(addressParts.length - 1, 1)[0];
     const loaderPlugin = addressParts.length === 1 ? addressParts[0] : null;
@@ -217,6 +200,8 @@ export class FuseAureliaLoader extends Loader {
     return null
   }
 
+
+
   /**
   * Alters a module id so that it includes a plugin loader.
   * @param url The url of the module to load.
@@ -224,13 +209,103 @@ export class FuseAureliaLoader extends Loader {
   * @return The plugin-based module id.
   */
   applyPluginToUrl(url, pluginName) {
-    console.log("applyPluginToUrl =>", arguments)
-    // if(pluginName === "html-resource-plugin") {
-    //   pluginName = "template-registry-entry"
-    // }
-
+    debugPrint("applyPluginToUrl =>", arguments);
     return `${pluginName}!${url}`;
   }
+
+
+  // returns result
+  loadWithFusebox(args){
+    return FuseBox.import(args);
+  }
+
+
+  // temp fix for bug
+  fuseBoxExist(id) {
+    let result = false;
+    try {
+      result = FuseBox.exists(id);
+    } catch (e) { result = false }
+    return result;
+  }
+
+
+
+  //finds correct path to use
+  findFuseBoxPath(path){
+    let retunValue;
+    let modulePart;
+    switch (true) {
+      
+      
+      case path.startsWith("html-resource-plugin!"):
+        retunValue = path; // this should never trigger loadmodule should catch this...
+        debugPrint("WHY!", arguments)
+        break;
+      
+      
+      case path.startsWith("css-resource-plugin!"):
+        
+        path = path.replace("css-resource-plugin!", "")
+        
+        modulePart = path.split("/")[0];
+        
+        switch (true) {
+          case this.fuseBoxExist(path):
+            retunValue = path;
+            break;
+          case this.fuseBoxExist('~/' + path):
+            retunValue = '~/' + path;
+            break
+          case this.fuseBoxExist(path.replace(modulePart, modulePart + "/dist/commonjs")):
+            retunValue = path.replace(modulePart, modulePart + "/dist/commonjs");
+            break;
+          default:
+            debugPrint("findFuseBoxPath() failed to find", arguments)
+        }
+        break;
+      
+      
+      case path.includes("/"):
+
+        // package path, lets test where it is
+        modulePart = path.split("/")[0];
+        switch (true) {
+          case this.fuseBoxExist(path):// exsist sometimes fails...
+            retunValue = path;
+            break;
+          case this.fuseBoxExist('~/' + path):
+            retunValue = '~/' + path;
+            break
+          case this.fuseBoxExist(path.replace(modulePart, modulePart + "/dist/commonjs")):
+            retunValue = path.replace(modulePart, modulePart + "/dist/commonjs");
+            break;
+          default:
+
+            debugPrint("findFuseBoxPath() failed to find", arguments)
+        }
+        break;
+
+      default:
+
+        //default
+        switch (true) {
+          case this.fuseBoxExist(path):
+            retunValue = path;
+            break;
+          case this.fuseBoxExist('~/' + path):
+            retunValue = '~/' + path;
+            break;
+          default:
+            debugPrint("findFuseBoxPath() failed to find", arguments)
+
+        }
+    }
+
+    return retunValue;
+  }
+
+
 }
 
 PLATFORM.Loader = FuseAureliaLoader;

@@ -19,21 +19,24 @@ let MainAppFuse = fuse.init({
     }
 })
 
-//grid bundle
+//grid bundle 
+//I need to ask if there is a better way to do this, I need to include it in devserver bundle to else I will be missing entry point
 let gridFuse = fuse.init({
         package: "aurelia-v-grid",
-        homeDir: "./node_modules/aurelia-v-grid/dist/commonjs",
+        homeDir: "./node_modules/aurelia-v-grid/src/",
         outFile: "./aurelia-v-grid.js",
-//        globals: { "aurelia-v-grid": "aurelia-v-grid" },
         plugins: [
         fb.CSSPlugin(),
         fb.HTMLPlugin({ useDefault: true }),
+        fb.TypeScriptHelpers()
     ]
 })
 
-gridFuse.bundle(`> index.js 
+
+
+gridFuse.bundle(`> index.ts
     + **/*.html 
-    + **/*.js 
+    + **/*.ts
     + **/*.css
     - aurelia-framework
     - aurelia-dependency-injectio
@@ -47,7 +50,7 @@ gridFuse.bundle(`> index.js
     - aurelia-loader`);
 
 // I wish I could define the package above directly in 1 bundle, or multible packages in 1 file
-
+// is there a way I can stop bundle above from bringing in other node_modules, without listing everyone?
 
 // dev server
 MainAppFuse.devServer(`
@@ -55,6 +58,7 @@ MainAppFuse.devServer(`
     + **/*.html 
     + **/*.ts 
     + **/*.css 
+    + aurelia-v-grid
     + aurelia-framework
     + aurelia-polyfills
     + aurelia-fetch-client
@@ -67,3 +71,4 @@ MainAppFuse.devServer(`
     + aurelia-history-browser 
     + aurelia-templating-router
     `)
+

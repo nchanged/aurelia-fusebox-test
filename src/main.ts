@@ -11,8 +11,8 @@ import 'aurelia-bootstrapper';
 export function configure(aurelia) {
   aurelia.use
     .standardConfiguration()
-    .developmentLogging()
-    //.plugin("aurelia-v-grid")
+    //.developmentLogging()
+    .plugin("aurelia-v-grid")
 
   aurelia.start().then(() => aurelia.setRoot());
 }
