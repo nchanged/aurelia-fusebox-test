@@ -45,8 +45,8 @@ require("aurelia-bootstrapper");
 function configure(aurelia) {
     aurelia.use
         .standardConfiguration()
-        .developmentLogging()
-        .plugin("aurelia-v-grid");
+        .developmentLogging();
+    //.plugin("aurelia-v-grid")
     aurelia.start().then(function () { return aurelia.setRoot(); });
 }
 exports.configure = configure;
@@ -186,6 +186,10 @@ var FuseAureliaLoader = (function (_super) {
             id = id.replace("aurelia-templating-router", "aurelia-templating-router/dist/commonjs");
             module = FuseBox["import"](id);
         }
+        else if (id.startsWith("aurelia-v-grid/")) {
+            id = id.replace("aurelia-v-grid", "aurelia-v-grid");
+            module = FuseBox["import"](id);
+        }
         else if (id.startsWith("html-resource-plugin!")) {
             module = this._import(id);
         }
@@ -198,9 +202,6 @@ var FuseAureliaLoader = (function (_super) {
                 module = FuseBox["import"]('~/' + id);
             }
             else {
-                if (id === "aurelia-v-grid") {
-                    debugger;
-                }
                 module = FuseBox["import"](id);
             }
         }
@@ -337,7 +338,6 @@ exports.App = App;
 
 });
 ___scope___.file("blur-image.js", function(exports, require, module, __filename, __dirname){ 
-var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
@@ -671,7 +671,6 @@ exports.ChildRouter = ChildRouter;
 
 });
 ___scope___.file("users.js", function(exports, require, module, __filename, __dirname){ 
-var __decorate = __fsbx_decorate(arguments)
 var __decorate = __fsbx_decorate(arguments)
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {

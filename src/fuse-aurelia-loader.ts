@@ -142,6 +142,9 @@ export class FuseAureliaLoader extends Loader {
     }else if(id.startsWith("aurelia-templating-router/")) { //This should be handled in a Plugin
       id = id.replace("aurelia-templating-router", "aurelia-templating-router/dist/commonjs")
       module = FuseBox.import(id)
+    }else if(id.startsWith("aurelia-v-grid/")) { //This should be handled in a Plugin
+      id = id.replace("aurelia-v-grid", "aurelia-v-grid")
+      module = FuseBox.import(id)
     }
     else if(id.startsWith("html-resource-plugin!")){
       module = this._import(id)
@@ -156,10 +159,6 @@ export class FuseAureliaLoader extends Loader {
       if(!FuseBox.packages[id]){
         module = FuseBox.import('~/' + id)
       } else {
-        if(id === "aurelia-v-grid"){
-          debugger;
-          // when I load module not it will not load since I have no enty point..
-        }
         module = FuseBox.import(id)
       }
     }

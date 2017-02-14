@@ -12,7 +12,7 @@ export function configure(aurelia) {
   aurelia.use
     .standardConfiguration()
     .developmentLogging()
-    .plugin("aurelia-v-grid")
+    //.plugin("aurelia-v-grid")
 
   aurelia.start().then(() => aurelia.setRoot());
 }

@@ -24,14 +24,29 @@ let gridFuse = fuse.init({
         package: "aurelia-v-grid",
         homeDir: "./node_modules/aurelia-v-grid/dist/commonjs",
         outFile: "./aurelia-v-grid.js",
-        globals: { "aurelia-v-grid": "aurelia-v-grid" },
+//        globals: { "aurelia-v-grid": "aurelia-v-grid" },
         plugins: [
         fb.CSSPlugin(),
         fb.HTMLPlugin({ useDefault: true }),
     ]
 })
-gridFuse.bundle('> index.js + **/*.html + **/*.js + **/*.css'); // I need remove dependencies here, no need to include evrything here too
 
+gridFuse.bundle(`> index.js 
+    + **/*.html 
+    + **/*.js 
+    + **/*.css
+    - aurelia-framework
+    - aurelia-dependency-injectio
+    - aurelia-metadata
+    - aurelia-pal
+    - aurelia-binding
+    - aurelia-logging
+    - aurelia-task-queue
+    - aurelia-templating
+    - aurelia-path
+    - aurelia-loader`);
+
+// I wish I could define the package above directly in 1 bundle, or multible packages in 1 file
 
 
 // dev server
