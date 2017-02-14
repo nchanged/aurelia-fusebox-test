@@ -199,6 +199,7 @@ var FuseAureliaLoader = (function (_super) {
             }
             else {
                 if (id === "aurelia-v-grid") {
+                    debugger;
                 }
                 module = FuseBox["import"](id);
             }

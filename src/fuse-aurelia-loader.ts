@@ -157,7 +157,8 @@ export class FuseAureliaLoader extends Loader {
         module = FuseBox.import('~/' + id)
       } else {
         if(id === "aurelia-v-grid"){
-          //debugger;
+          debugger;
+          // when I load module not it will not load since I have no enty point..
         }
         module = FuseBox.import(id)
       }

@@ -24,6 +24,7 @@ let gridFuse = fuse.init({
         package: "aurelia-v-grid",
         homeDir: "./node_modules/aurelia-v-grid/dist/commonjs",
         outFile: "./aurelia-v-grid.js",
+        globals: { "aurelia-v-grid": "aurelia-v-grid" },
         plugins: [
         fb.CSSPlugin(),
         fb.HTMLPlugin({ useDefault: true }),
